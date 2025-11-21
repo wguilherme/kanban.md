@@ -15,7 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// 注册webview panel序列化器（用于恢复面板状态）
 	if (vscode.window.registerWebviewPanelSerializer) {
 		vscode.window.registerWebviewPanelSerializer(KanbanWebviewPanel.viewType, {
-			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, _state: any) {
 				KanbanWebviewPanel.revive(webviewPanel, context.extensionUri, context);
 			}
 		});

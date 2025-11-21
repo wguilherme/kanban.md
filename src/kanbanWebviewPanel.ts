@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import * as fs from 'fs';
 
 import { MarkdownKanbanParser, KanbanBoard, KanbanTask, KanbanColumn } from './markdownParser';
@@ -10,7 +9,6 @@ export class KanbanWebviewPanel {
 
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
-    private _context: vscode.ExtensionContext;
     private _disposables: vscode.Disposable[] = [];
     private _board?: KanbanBoard;
     private _document?: vscode.TextDocument;
@@ -52,10 +50,9 @@ export class KanbanWebviewPanel {
         KanbanWebviewPanel.currentPanel = new KanbanWebviewPanel(panel, extensionUri, context);
     }
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, _context: vscode.ExtensionContext) {
         this._panel = panel;
         this._extensionUri = extensionUri;
-        this._context = context;
 
         this._update();
         this._setupEventListeners();
@@ -320,11 +317,11 @@ export class KanbanWebviewPanel {
     }
 
     private _getHtmlForWebview() {
-        const filePath = vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'html', 'webview.html'));
+        const filePath = vscode.Uri.joinPath(this._extensionUri, 'src', 'html', 'webview.html');
         let html = fs.readFileSync(filePath.fsPath, 'utf8');
 
         const baseWebviewUri = this._panel.webview.asWebviewUri(
-            vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'html'))
+            vscode.Uri.joinPath(this._extensionUri, 'src', 'html')
         );
 
         html = html.replace(/<head>/, `<head><base href="${baseWebviewUri.toString()}/">`);
