@@ -14,12 +14,18 @@ export function DraggableTask({ task }: DraggableTaskProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+    isOver,
+  } = useSortable({
+    id: task.id,
+    transition: {
+      duration: 200,
+      easing: 'ease',
+    },
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
@@ -28,9 +34,15 @@ export function DraggableTask({ task }: DraggableTaskProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-vscode-background p-3 rounded border border-vscode-input-border hover:border-vscode-button-bg transition-colors cursor-grab active:cursor-grabbing"
+      className={`bg-vscode-background p-3 rounded border transition-all cursor-grab active:cursor-grabbing ${
+        isDragging
+          ? 'opacity-30 scale-95 border-vscode-focusBorder'
+          : isOver
+          ? 'border-vscode-button-bg scale-105'
+          : 'border-vscode-input-border hover:border-vscode-button-bg'
+      }`}
     >
-      <h3 className="font-medium">{task.title}</h3>
+      <h3 className="font-medium text-vscode-foreground">{task.title}</h3>
       {task.tags && task.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
           {task.tags.map((tag, idx) => (
