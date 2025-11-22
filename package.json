@@ -70,14 +70,25 @@
         "title": "Open Kanban Board",
         "icon": "$(open-preview)",
         "category": "Markdown Kanban"
+      },
+      {
+        "command": "markdown-kanban.newKanban",
+        "title": "New Kanban Board",
+        "icon": "$(add)",
+        "category": "Markdown Kanban"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "markdown-kanban.newKanban",
+          "when": "view == markdown-kanban.boards",
+          "group": "navigation@1"
+        },
+        {
           "command": "markdown-kanban.refresh",
           "when": "view == markdown-kanban.boards",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [

@@ -1,8 +1,10 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { KanbanWebviewPanel } from './kanbanWebviewPanel';
 import { KanbanTreeProvider } from './kanbanTreeProvider';
+import { KANBAN_TEMPLATE } from './templates/kanbanTemplate';
 
 
 // This method is called when your extension is activated
@@ -89,6 +91,74 @@ export function activate(context: vscode.ExtensionContext) {
 		KanbanWebviewPanel.createOrShow(context.extensionUri, context, document);
 	});
 
+	// Register command to create new kanban board
+	const newKanbanCommand = vscode.commands.registerCommand('markdown-kanban.newKanban', async () => {
+		// Get workspace folder
+		const workspaceFolders = vscode.workspace.workspaceFolders;
+		if (!workspaceFolders || workspaceFolders.length === 0) {
+			vscode.window.showErrorMessage('Please open a workspace folder first.');
+			return;
+		}
+
+		// Ask user for file name
+		const fileName = await vscode.window.showInputBox({
+			prompt: 'Enter kanban board name',
+			placeHolder: 'my-project',
+			validateInput: (value) => {
+				if (!value || value.trim().length === 0) {
+					return 'File name cannot be empty';
+				}
+				if (value.includes('/') || value.includes('\\')) {
+					return 'File name cannot contain path separators';
+				}
+				return null;
+			}
+		});
+
+		if (!fileName) {
+			return;
+		}
+
+		// Create file path
+		const workspaceFolder = workspaceFolders[0];
+		const sanitizedFileName = fileName.trim().replace(/\.kanban\.md$/, '').replace(/\.md$/, '');
+		const filePath = path.join(workspaceFolder.uri.fsPath, `${sanitizedFileName}.kanban.md`);
+		const fileUri = vscode.Uri.file(filePath);
+
+		try {
+			// Check if file already exists
+			try {
+				await vscode.workspace.fs.stat(fileUri);
+				vscode.window.showErrorMessage(`File ${sanitizedFileName}.kanban.md already exists.`);
+				return;
+			} catch {
+				// File doesn't exist, continue
+			}
+
+			// Create file with template
+			const edit = new vscode.WorkspaceEdit();
+			edit.createFile(fileUri, { ignoreIfExists: false });
+			await vscode.workspace.applyEdit(edit);
+
+			// Open and write template
+			const document = await vscode.workspace.openTextDocument(fileUri);
+			const editor = await vscode.window.showTextDocument(document);
+			await editor.edit(editBuilder => {
+				editBuilder.insert(new vscode.Position(0, 0), KANBAN_TEMPLATE);
+			});
+
+			// Save the document
+			await document.save();
+
+			// Open kanban board
+			KanbanWebviewPanel.createOrShow(context.extensionUri, context, document);
+
+			vscode.window.showInformationMessage(`Created ${sanitizedFileName}.kanban.md`);
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to create kanban board: ${error}`);
+		}
+	});
+
 	// 监听文档变化，自动更新看板（实时同步）
 	const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
 		if (event.document.languageId === 'markdown' && fileListenerEnabled) {
@@ -122,6 +192,7 @@ export function activate(context: vscode.ExtensionContext) {
 		disableFileListenerCommand,
 		refreshCommand,
 		openFromSidebarCommand,
+		newKanbanCommand,
 		documentChangeListener,
 		activeEditorChangeListener,
 	);
