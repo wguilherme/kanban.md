@@ -114,7 +114,7 @@ export class MarkdownKanbanParser {
 
         if (currentColumn) {
           let taskTitle = '';
-          
+
           if (trimmedLine.startsWith('### ')) {
             taskTitle = trimmedLine.substring(4).trim();
           } else {
@@ -128,7 +128,8 @@ export class MarkdownKanbanParser {
           currentTask = {
             id: this.generateId(),
             title: taskTitle,
-            description: ''
+            description: '',
+            tags: []
           };
           inTaskProperties = true;
           inTaskDescription = false;
@@ -138,15 +139,20 @@ export class MarkdownKanbanParser {
 
       // 解析任务属性
       if (!inCodeBlock && currentTask && inTaskProperties) {
+        // Parse inline hashtags
+        if (this.parseInlineTags(line, currentTask)) {
+          continue;
+        }
+
         if (this.parseTaskProperty(line, currentTask)) {
           continue;
         }
-        
+
         // 解析 steps 中的具体步骤项
         if (this.parseTaskStep(line, currentTask)) {
           continue;
         }
-        
+
         // 检查是否开始描述部分
         if (line.match(/^\s+```md/)) {
           inTaskProperties = false;
@@ -182,14 +188,39 @@ export class MarkdownKanbanParser {
 
   private static isTaskTitle(line: string, trimmedLine: string): boolean {
     // 排除属性行和步骤项
-    if (line.startsWith('- ') && 
+    if (line.startsWith('- ') &&
         (trimmedLine.match(/^\s*- (due|tags|priority|workload|steps|defaultExpanded):/) ||
          line.match(/^\s{6,}- \[([ x])\]/))) {
       return false;
     }
-    
-    return (line.startsWith('- ') && !line.startsWith('  ')) || 
+
+    return (line.startsWith('- ') && !line.startsWith('  ')) ||
            trimmedLine.startsWith('### ');
+  }
+
+  private static parseInlineTags(line: string, task: KanbanTask): boolean {
+    const trimmed = line.trim();
+
+    // Check if line contains hashtags
+    if (!trimmed.startsWith('#')) {
+      return false;
+    }
+
+    // Extract all hashtags from the line
+    const hashtagMatches = trimmed.match(/#[\w\-@$%✓0-9]+/g);
+    if (!hashtagMatches) {
+      return false;
+    }
+
+    // Remove '#' prefix and add to tags array
+    const tags = hashtagMatches.map(tag => tag.substring(1));
+
+    if (!task.tags) {
+      task.tags = [];
+    }
+
+    task.tags.push(...tags);
+    return true;
   }
 
   private static parseTaskProperty(line: string, task: KanbanTask): boolean {
