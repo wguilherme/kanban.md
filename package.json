@@ -124,11 +124,14 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "npm run check-types && npm run lint && vite build",
+    "compile": "npm run check-types && npm run lint && npm run build:extension && npm run build:webview",
     "watch": "npm-run-all -p watch:*",
-    "watch:vite": "vite build --watch",
+    "watch:extension": "vite build --watch --config vite.config.ts",
+    "watch:webview": "vite build --watch --config vite.webview.config.ts",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "npm run check-types && npm run lint && vite build --mode production",
+    "build:extension": "vite build --config vite.config.ts",
+    "build:webview": "vite build --config vite.webview.config.ts",
+    "package": "npm run check-types && npm run lint && npm run build:extension -- --mode production && npm run build:webview -- --mode production",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
@@ -139,15 +142,28 @@
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "^24.10.1",
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.106.1",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
+    "@vitejs/plugin-react": "^5.1.1",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.5.2",
+    "autoprefixer": "^10.4.22",
     "eslint": "^8.56.0",
     "npm-run-all": "^4.1.5",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
     "typescript": "^5.9.3",
     "vite": "^7.2.4",
     "vite-plugin-static-copy": "^3.1.4"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   }
 }
