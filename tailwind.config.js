@@ -30,6 +30,12 @@ export default {
         'vscode-checkbox-selectBg': 'var(--vscode-checkbox-selectBackground)',
         'vscode-toolbar-hoverBg': 'var(--vscode-toolbar-hoverBackground)',
         'vscode-list-hoverBg': 'var(--vscode-list-hoverBackground)',
+        // Semantic colors for variants
+        'vscode-primary': 'var(--vscode-activityBarBadge-background)',
+        'vscode-success': 'var(--vscode-testing-iconPassed)',
+        'vscode-error': 'var(--vscode-testing-iconFailed)',
+        'vscode-warning': 'var(--vscode-notificationsWarningIcon-foreground)',
+        'vscode-info': 'var(--vscode-notificationsInfoIcon-foreground)',
       },
     },
   },

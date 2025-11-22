@@ -27,7 +27,7 @@ export function DroppableColumn({ column }: DroppableColumnProps) {
         {column.title}
         {column.archived && ' [Archived]'}
         {isOver && (
-          <span className="text-xs px-2 py-1 rounded bg-vscode-focusBorder text-vscode-button-fg animate-pulse">
+          <span className="text-xs px-2 py-1 rounded bg-vscode-primary text-vscode-button-fg animate-pulse">
             Drop here
           </span>
         )}
