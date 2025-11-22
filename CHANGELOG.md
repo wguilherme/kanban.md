@@ -12,8 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sidebar Integration**: Added Activity Bar icon with dedicated sidebar view for kanban boards
   - New TreeView displaying all `.kanban.md` files in workspace
   - Quick access to open kanban boards directly from sidebar
+  - **New Kanban Board** button (➕) to create new boards instantly
   - Refresh button to update file list
   - Auto-refresh when `.kanban.md` files are created, deleted, or modified
+
+- **Quick Board Creation**:
+  - One-click board creation from sidebar
+  - Interactive name input with validation
+  - Pre-filled template with example tasks and columns
+  - Auto-opens board after creation
 
 ### ⚡ Breaking Changes
 
