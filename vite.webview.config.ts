@@ -4,8 +4,9 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  root: 'src/webview',
   build: {
-    outDir: 'dist/webview',
+    outDir: resolve(__dirname, 'dist/webview'),
     emptyOutDir: true,
     rollupOptions: {
       input: resolve(__dirname, 'src/webview/index.html'),

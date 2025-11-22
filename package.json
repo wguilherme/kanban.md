@@ -124,7 +124,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "npm run check-types && npm run lint && npm run build:extension && npm run build:webview",
+    "build": "npm run build:extension && npm run build:webview",
+    "compile": "npm run check-types && npm run lint && npm run build",
     "watch": "npm-run-all -p watch:*",
     "watch:extension": "vite build --watch --config vite.config.ts",
     "watch:webview": "vite build --watch --config vite.webview.config.ts",
@@ -148,6 +149,7 @@
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vscode/codicons": "^0.0.43",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.5.2",
     "autoprefixer": "^10.4.22",

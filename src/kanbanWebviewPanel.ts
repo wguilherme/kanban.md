@@ -30,7 +30,9 @@ export class KanbanWebviewPanel {
             column || vscode.ViewColumn.One,
             {
                 enableScripts: true,
-                localResourceRoots: [extensionUri],
+                localResourceRoots: [
+                    vscode.Uri.joinPath(extensionUri, 'dist', 'webview')
+                ],
                 retainContextWhenHidden: true
             }
         );
@@ -45,7 +47,9 @@ export class KanbanWebviewPanel {
     public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
         panel.webview.options = {
             enableScripts: true,
-            localResourceRoots: [extensionUri],
+            localResourceRoots: [
+                vscode.Uri.joinPath(extensionUri, 'dist', 'webview')
+            ],
         };
         KanbanWebviewPanel.currentPanel = new KanbanWebviewPanel(panel, extensionUri, context);
     }
@@ -84,6 +88,14 @@ export class KanbanWebviewPanel {
 
     private _handleMessage(message: any) {
         switch (message.type) {
+            case 'webviewReady':
+                // Webview is ready, send the board data
+                const board = this._board || { title: 'Please open a Markdown Kanban file', columns: [] };
+                this._panel.webview.postMessage({
+                    type: 'updateBoard',
+                    board: board
+                });
+                break;
             case 'moveTask':
                 this.moveTask(message.taskId, message.fromColumnId, message.toColumnId, message.newIndex);
                 break;
@@ -133,12 +145,15 @@ export class KanbanWebviewPanel {
         if (!this._panel.webview) return;
 
         this._panel.webview.html = this._getHtmlForWebview();
-        
-        const board = this._board || { title: 'Please open a Markdown Kanban file', columns: [] };
-        this._panel.webview.postMessage({
-            type: 'updateBoard',
-            board: board
-        });
+
+        // Send board data after a short delay to ensure webview is ready
+        setTimeout(() => {
+            const board = this._board || { title: 'Please open a Markdown Kanban file', columns: [] };
+            this._panel.webview.postMessage({
+                type: 'updateBoard',
+                board: board
+            });
+        }, 100);
     }
 
     private async saveToMarkdown() {
@@ -317,16 +332,37 @@ export class KanbanWebviewPanel {
     }
 
     private _getHtmlForWebview() {
-        const filePath = vscode.Uri.joinPath(this._extensionUri, 'src', 'html', 'webview.html');
-        let html = fs.readFileSync(filePath.fsPath, 'utf8');
+        const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'dist', 'webview', 'index.html');
+        let html = fs.readFileSync(htmlPath.fsPath, 'utf8');
 
-        const baseWebviewUri = this._panel.webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'src', 'html')
+        const webviewUri = this._panel.webview.asWebviewUri(
+            vscode.Uri.joinPath(this._extensionUri, 'dist', 'webview')
         );
 
-        html = html.replace(/<head>/, `<head><base href="${baseWebviewUri.toString()}/">`);
+        const cspSource = this._panel.webview.cspSource;
+        const nonce = this._getNonce();
+
+        // Replace placeholders
+        html = html.replace(/{{cspSource}}/g, cspSource);
+        html = html.replace(/{{nonce}}/g, nonce);
+
+        // Fix asset paths - convert /assets/ to proper webview URIs
+        html = html.replace(/src="\/assets\//g, `src="${webviewUri.toString()}/assets/`);
+        html = html.replace(/href="\/assets\//g, `href="${webviewUri.toString()}/assets/`);
+
+        // Add nonce to inline scripts
+        html = html.replace(/<script/g, `<script nonce="${nonce}"`);
 
         return html;
+    }
+
+    private _getNonce() {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
     }
 
     public dispose() {

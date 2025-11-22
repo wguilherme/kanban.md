@@ -1,15 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useVSCodeAPI, useVSCodeMessage } from './hooks/useVSCodeApi';
 import type { KanbanBoard } from './types/kanban';
 
 function App() {
   const [board, setBoard] = useState<KanbanBoard | null>(null);
-  useVSCodeAPI(); // Initialize VSCode API
+  const { postMessage } = useVSCodeAPI(); // Initialize VSCode API
+
+  // Notify extension that webview is ready
+  useEffect(() => {
+    console.log('Webview ready, sending ready message');
+    postMessage({ type: 'webviewReady' });
+  }, [postMessage]);
 
   // Listen for messages from the extension
   useVSCodeMessage(useCallback((message: any) => {
+    console.log('Received message:', message);
     switch (message.type) {
       case 'updateBoard':
+        console.log('Updating board with:', message.board);
         setBoard(message.board);
         break;
     }
