@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
-  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -10,6 +9,7 @@ import {
   useSensors,
   closestCorners,
 } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { useVSCodeAPI, useVSCodeMessage } from './hooks/useVSCodeApi';
 import type { KanbanBoard, KanbanTask } from './types/kanban';
 import { DroppableColumn } from './components/DroppableColumn';
@@ -52,92 +52,104 @@ function App() {
     setActiveTask(task || null);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+
+    setActiveTask(null);
 
     if (!over || !board) return;
 
-    const activeId = active.id as string;
+    const activeTaskId = active.id as string;
     const overId = over.id as string;
 
-    // Find source and target columns
-    const activeColumn = board.columns.find(col =>
-      col.tasks.some(task => task.id === activeId)
+    // Find source column
+    const sourceColumn = board.columns.find(col =>
+      col.tasks.some(task => task.id === activeTaskId)
     );
-    const overColumn = board.columns.find(col => col.id === overId) ||
+
+    if (!sourceColumn) return;
+
+    // Find target column
+    const targetColumn = board.columns.find(col => col.id === overId) ||
       board.columns.find(col => col.tasks.some(task => task.id === overId));
 
-    if (!activeColumn || !overColumn) return;
-    if (activeColumn.id === overColumn.id) return; // Same column, let sortable handle it
+    if (!targetColumn) return;
 
-    // Optimistically update local state for smooth UX
-    setBoard(prevBoard => {
-      if (!prevBoard) return prevBoard;
+    const sourceIndex = sourceColumn.tasks.findIndex(t => t.id === activeTaskId);
+    const task = sourceColumn.tasks[sourceIndex];
 
-      const newColumns = prevBoard.columns.map(col => ({ ...col, tasks: [...col.tasks] }));
-      const sourceCol = newColumns.find(col => col.id === activeColumn.id);
-      const targetCol = newColumns.find(col => col.id === overColumn.id);
+    // Calculate target index
+    let targetIndex: number;
 
-      if (!sourceCol || !targetCol) return prevBoard;
+    if (overId === targetColumn.id) {
+      // Dropped on empty column area
+      targetIndex = targetColumn.tasks.length;
+    } else {
+      // Dropped on a task
+      targetIndex = targetColumn.tasks.findIndex(t => t.id === overId);
+    }
 
-      const taskIndex = sourceCol.tasks.findIndex(task => task.id === activeId);
-      if (taskIndex === -1) return prevBoard;
+    // Same column - reorder using arrayMove
+    if (sourceColumn.id === targetColumn.id) {
+      if (sourceIndex === targetIndex) return;
 
-      const [task] = sourceCol.tasks.splice(taskIndex, 1);
+      setBoard(prev => {
+        if (!prev) return prev;
 
-      // Find insertion index
-      let insertIndex = targetCol.tasks.length;
-      if (overId !== overColumn.id) {
-        insertIndex = targetCol.tasks.findIndex(t => t.id === overId);
-        if (insertIndex === -1) insertIndex = targetCol.tasks.length;
-      }
+        const newColumns = prev.columns.map(col => {
+          if (col.id === sourceColumn.id) {
+            return {
+              ...col,
+              tasks: arrayMove(col.tasks, sourceIndex, targetIndex)
+            };
+          }
+          return col;
+        });
 
-      targetCol.tasks.splice(insertIndex, 0, task);
-
-      return { ...prevBoard, columns: newColumns };
-    });
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveTask(null);
-
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    // Use the current board state (which was updated by onDragOver)
-    setBoard(currentBoard => {
-      if (!currentBoard) return currentBoard;
-
-      // Find source column and task in current state
-      const sourceColumn = currentBoard.columns.find(col =>
-        col.tasks.some(task => task.id === activeId)
-      );
-      if (!sourceColumn) return currentBoard;
-
-      // Check if dropped on a column or task
-      const targetColumn = currentBoard.columns.find(col => col.id === overId) ||
-        currentBoard.columns.find(col => col.tasks.some(task => task.id === overId));
-
-      if (!targetColumn) return currentBoard;
-
-      // Find the final index
-      let newIndex = targetColumn.tasks.findIndex(t => t.id === activeId);
-      if (newIndex === -1) newIndex = targetColumn.tasks.length;
-
-      // Send to backend
-      postMessage({
-        type: 'moveTask',
-        taskId: activeId,
-        fromColumnId: sourceColumn.id,
-        toColumnId: targetColumn.id,
-        newIndex: newIndex,
+        return { ...prev, columns: newColumns };
       });
 
-      return currentBoard;
-    });
+      postMessage({
+        type: 'moveTask',
+        taskId: activeTaskId,
+        fromColumnId: sourceColumn.id,
+        toColumnId: targetColumn.id,
+        newIndex: targetIndex
+      });
+    } else {
+      // Different column - move task
+      setBoard(prev => {
+        if (!prev) return prev;
+
+        const newColumns = prev.columns.map(col => {
+          if (col.id === sourceColumn.id) {
+            return {
+              ...col,
+              tasks: col.tasks.filter(t => t.id !== activeTaskId)
+            };
+          }
+          if (col.id === targetColumn.id) {
+            const newTasks = [...col.tasks];
+            newTasks.splice(targetIndex, 0, task);
+            return {
+              ...col,
+              tasks: newTasks
+            };
+          }
+          return col;
+        });
+
+        return { ...prev, columns: newColumns };
+      });
+
+      postMessage({
+        type: 'moveTask',
+        taskId: activeTaskId,
+        fromColumnId: sourceColumn.id,
+        toColumnId: targetColumn.id,
+        newIndex: targetIndex
+      });
+    }
   };
 
   if (!board) {
@@ -155,7 +167,6 @@ function App() {
       sensors={sensors}
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="h-screen flex flex-col bg-vscode-background text-vscode-foreground">
