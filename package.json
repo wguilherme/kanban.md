@@ -31,6 +31,23 @@
     "url": "https://github.com/holooooo/markdown-kanban"
   },
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "markdown-kanban",
+          "title": "Markdown Kanban",
+          "icon": "$(list-tree)"
+        }
+      ]
+    },
+    "views": {
+      "markdown-kanban": [
+        {
+          "id": "markdown-kanban.boards",
+          "name": "Kanban Boards"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "markdown-kanban.openKanban",
@@ -41,9 +58,35 @@
         "command": "markdown-kanban.disableFileListener",
         "title": "Enable/Disable File Switcher",
         "category": "Markdown Kanban"
+      },
+      {
+        "command": "markdown-kanban.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)",
+        "category": "Markdown Kanban"
+      },
+      {
+        "command": "markdown-kanban.openFromSidebar",
+        "title": "Open Kanban Board",
+        "icon": "$(open-preview)",
+        "category": "Markdown Kanban"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "markdown-kanban.refresh",
+          "when": "view == markdown-kanban.boards",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "markdown-kanban.openFromSidebar",
+          "when": "view == markdown-kanban.boards && viewItem == kanbanFile",
+          "group": "inline"
+        }
+      ],
       "editor/title": [
         {
           "command": "markdown-kanban.openKanban",

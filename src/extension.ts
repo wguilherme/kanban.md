@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { KanbanWebviewPanel } from './kanbanWebviewPanel';
+import { KanbanTreeProvider } from './kanbanTreeProvider';
 
 
 // This method is called when your extension is activated
@@ -11,6 +12,12 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Markdown Kanban extension is now active!');
+
+	// Register TreeView for sidebar
+	const treeDataProvider = new KanbanTreeProvider();
+	const treeView = vscode.window.createTreeView('markdown-kanban.boards', {
+		treeDataProvider: treeDataProvider
+	});
 
 	// 注册webview panel序列化器（用于恢复面板状态）
 	if (vscode.window.registerWebviewPanelSerializer) {
@@ -71,6 +78,17 @@ export function activate(context: vscode.ExtensionContext) {
 		fileListenerEnabled = !fileListenerEnabled;
 	});
 
+	// Register refresh command for sidebar
+	const refreshCommand = vscode.commands.registerCommand('markdown-kanban.refresh', () => {
+		treeDataProvider.refresh();
+	});
+
+	// Register command to open kanban from sidebar
+	const openFromSidebarCommand = vscode.commands.registerCommand('markdown-kanban.openFromSidebar', async (uri: vscode.Uri) => {
+		const document = await vscode.workspace.openTextDocument(uri);
+		KanbanWebviewPanel.createOrShow(context.extensionUri, context, document);
+	});
+
 	// 监听文档变化，自动更新看板（实时同步）
 	const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
 		if (event.document.languageId === 'markdown' && fileListenerEnabled) {
@@ -99,8 +117,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// 添加到订阅列表
 	context.subscriptions.push(
+		treeView,
 		openKanbanCommand,
 		disableFileListenerCommand,
+		refreshCommand,
+		openFromSidebarCommand,
 		documentChangeListener,
 		activeEditorChangeListener,
 	);
