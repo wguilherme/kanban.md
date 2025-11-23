@@ -1,13 +1,14 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import type { KanbanColumn } from '../types/kanban';
+import type { KanbanColumn, KanbanTask } from '../types/kanban';
 import { DraggableTask } from './DraggableTask';
 
 interface DroppableColumnProps {
   column: KanbanColumn;
+  onUpdateTask: (taskId: string, updates: Partial<KanbanTask>) => void;
 }
 
-export function DroppableColumn({ column }: DroppableColumnProps) {
+export function DroppableColumn({ column, onUpdateTask }: DroppableColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
@@ -36,7 +37,7 @@ export function DroppableColumn({ column }: DroppableColumnProps) {
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <div className={`space-y-2 min-h-[100px] transition-all ${isOver ? 'opacity-90' : ''}`}>
           {column.tasks.map((task) => (
-            <DraggableTask key={task.id} task={task} />
+            <DraggableTask key={task.id} task={task} onUpdateTask={onUpdateTask} />
           ))}
         </div>
       </SortableContext>

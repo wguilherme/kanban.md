@@ -52,6 +52,27 @@ function App() {
     setActiveTask(task || null);
   };
 
+  const handleUpdateTask = useCallback((taskId: string, updates: Partial<KanbanTask>) => {
+    setBoard(prev => {
+      if (!prev) return prev;
+
+      const newColumns = prev.columns.map(col => ({
+        ...col,
+        tasks: col.tasks.map(task =>
+          task.id === taskId ? { ...task, ...updates } : task
+        )
+      }));
+
+      return { ...prev, columns: newColumns };
+    });
+
+    postMessage({
+      type: 'updateTask',
+      taskId,
+      updates
+    });
+  }, [postMessage]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -177,7 +198,7 @@ function App() {
         <main className="flex-1 overflow-auto p-4">
           <div className="flex gap-4">
             {board.columns.map((column) => (
-              <DroppableColumn key={column.id} column={column} />
+              <DroppableColumn key={column.id} column={column} onUpdateTask={handleUpdateTask} />
             ))}
           </div>
         </main>

@@ -99,6 +99,9 @@ export class KanbanWebviewPanel {
             case 'moveTask':
                 this.moveTask(message.taskId, message.fromColumnId, message.toColumnId, message.newIndex);
                 break;
+            case 'updateTask':
+                this.updateTask(message.taskId, message.updates);
+                break;
             case 'addTask':
                 this.addTask(message.columnId, message.taskData);
                 break;
@@ -212,6 +215,22 @@ export class KanbanWebviewPanel {
 
             const task = fromColumn.tasks.splice(taskIndex, 1)[0];
             toColumn.tasks.splice(newIndex, 0, task);
+        });
+    }
+
+    private updateTask(taskId: string, updates: Partial<KanbanTask>) {
+        this.performAction(() => {
+            if (!this._board) return;
+
+            // Find the task in any column
+            for (const column of this._board.columns) {
+                const taskIndex = column.tasks.findIndex(task => task.id === taskId);
+                if (taskIndex !== -1) {
+                    // Update the task with partial updates
+                    Object.assign(column.tasks[taskIndex], updates);
+                    return;
+                }
+            }
         });
     }
 
