@@ -22,6 +22,8 @@
 
 Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed to respect your VSCode theme, Markdown Kanban seamlessly integrates with your development environment.
 
+> **Note**: This project is inspired by [holooooo/markdown-kanban](https://github.com/holooooo/markdown-kanban). It has been completely refactored with modern technologies and architectural patterns to provide enhanced performance and maintainability.
+
 ![Kanban Board Demo](./imgs/image.png)
 
 ---
