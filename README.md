@@ -1,8 +1,8 @@
-# Markdown Kanban
+# Kanban.md
 
 <div align="center">
 
-![Markdown Kanban Logo](./imgs/logo.png)
+![Kanban.md Logo](./imgs/logo.png)
 
 **Transform your Markdown files into powerful, interactive Kanban boards**
 
@@ -18,9 +18,9 @@
 
 ## 📖 Overview
 
-**Markdown Kanban** is a modern VSCode extension that brings the power of Kanban boards directly into your Markdown workflow. Manage tasks, track progress, and organize projects using plain Markdown files with a beautiful, interactive drag-and-drop interface.
+**Kanban.md** is a modern VSCode extension that brings the power of Kanban boards directly into your Markdown workflow. Manage tasks, track progress, and organize projects using plain Markdown files with a beautiful, interactive drag-and-drop interface.
 
-Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed to respect your VSCode theme, Markdown Kanban seamlessly integrates with your development environment.
+Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed to respect your VSCode theme, Kanban.md seamlessly integrates with your development environment.
 
 > **Note**: This project is inspired by [holooooo/markdown-kanban](https://github.com/holooooo/markdown-kanban). It has been completely refactored with modern technologies and architectural patterns to provide enhanced performance and maintainability.
 
@@ -477,6 +477,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **Made with ❤️ by the open source community**
 
-[⬆ Back to top](#markdown-kanban)
+[⬆ Back to top](#kanbanmd)
 
 </div>
