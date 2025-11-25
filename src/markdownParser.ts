@@ -167,7 +167,7 @@ export class MarkdownKanbanParser {
         continue;
       }
 
-      // 结束当前任务
+      // Finalize current task
       if (!inCodeBlock && currentTask && (inTaskProperties || inTaskDescription)) {
         this.finalizeCurrentTask(currentTask, currentColumn);
         currentTask = null;
@@ -177,7 +177,7 @@ export class MarkdownKanbanParser {
       }
     }
 
-    // 添加最后的任务和列
+    // Add final task and column
     this.finalizeCurrentTask(currentTask, currentColumn);
     if (currentColumn) {
       board.columns.push(currentColumn);
@@ -187,7 +187,7 @@ export class MarkdownKanbanParser {
   }
 
   private static isTaskTitle(line: string, trimmedLine: string): boolean {
-    // 排除属性行和步骤项
+    // Exclude property lines and step items
     if (line.startsWith('- ') &&
         (trimmedLine.match(/^\s*- (due|tags|priority|workload|steps|defaultExpanded):/) ||
          line.match(/^\s{6,}- \[([ x])\]/))) {
@@ -304,10 +304,10 @@ export class MarkdownKanbanParser {
           markdown += `- ${task.title}\n`;
         }
 
-        // 添加任务属性
+        // Add task properties
         markdown += this.generateTaskProperties(task);
 
-        // 添加描述
+        // Add description
         if (task.description && task.description.trim() !== '') {
           markdown += `    \`\`\`md\n`;
           const descriptionLines = task.description.trim().split('\n');

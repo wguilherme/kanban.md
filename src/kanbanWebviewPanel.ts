@@ -13,6 +13,10 @@ export class KanbanWebviewPanel {
     private _board?: KanbanBoard;
     private _document?: vscode.TextDocument;
 
+    // Flag to prevent external reload when we just saved from webview
+    // This is the key to preventing flickering!
+    private _isSavingFromWebview = false;
+
     public static createOrShow(extensionUri: vscode.Uri, context: vscode.ExtensionContext, document?: vscode.TextDocument) {
         const column = vscode.window.activeTextEditor?.viewColumn;
 
@@ -144,25 +148,36 @@ export class KanbanWebviewPanel {
         this._update();
     }
 
-    private _update() {
+    private _update(rebuildHtml = true) {
         if (!this._panel.webview) {return;}
 
-        this._panel.webview.html = this._getHtmlForWebview();
+        if (rebuildHtml) {
+            this._panel.webview.html = this._getHtmlForWebview();
+            // Send board data after a short delay to ensure webview is ready
+            setTimeout(() => {
+                this._sendBoardUpdate();
+            }, 100);
+        } else {
+            // Just send the board data without rebuilding HTML
+            this._sendBoardUpdate();
+        }
+    }
 
-        // Send board data after a short delay to ensure webview is ready
-        setTimeout(() => {
-            const board = this._board || { title: 'Please open a Markdown Kanban file', columns: [] };
-            this._panel.webview.postMessage({
-                type: 'updateBoard',
-                board: board
-            });
-        }, 100);
+    private _sendBoardUpdate() {
+        const board = this._board || { title: 'Please open a Markdown Kanban file', columns: [] };
+        this._panel.webview.postMessage({
+            type: 'updateBoard',
+            board: board
+        });
     }
 
     private async saveToMarkdown() {
         if (!this._document || !this._board) {return;}
 
-        // 获取配置设置
+        // Set flag to prevent external document change listener from reloading
+        this._isSavingFromWebview = true;
+
+        // Get config settings
         const config = vscode.workspace.getConfiguration('markdown-kanban');
         const taskHeaderFormat = config.get<'title' | 'list'>('taskHeader', 'title');
 
@@ -175,6 +190,19 @@ export class KanbanWebviewPanel {
         );
         await vscode.workspace.applyEdit(edit);
         await this._document.save();
+
+        // Reset flag after a delay to allow document change events to be processed
+        setTimeout(() => {
+            this._isSavingFromWebview = false;
+        }, 600);
+    }
+
+    /**
+     * Check if the panel is currently saving from webview action.
+     * Used by external listeners to avoid reloading when we just saved.
+     */
+    public isSavingFromWebview(): boolean {
+        return this._isSavingFromWebview;
     }
 
     private findColumn(columnId: string): KanbanColumn | undefined {
@@ -195,12 +223,17 @@ export class KanbanWebviewPanel {
         };
     }
 
-    private async performAction(action: () => void) {
+    private async performAction(action: () => void, skipUpdate = true) {
         if (!this._board) {return;}
-        
+
         action();
         await this.saveToMarkdown();
-        this._update();
+
+        // Only update UI for operations not initiated by frontend
+        // Frontend already has optimistic updates, so skip to avoid flash
+        if (!skipUpdate) {
+            this._update();
+        }
     }
 
     private moveTask(taskId: string, fromColumnId: string, toColumnId: string, newIndex: number) {
