@@ -3,6 +3,17 @@ import { useVSCodeAPI, useVSCodeMessage } from './useVSCodeApi';
 import type { KanbanBoard, KanbanTask, KanbanColumn } from '../types/kanban';
 import { arrayMove } from '@dnd-kit/sortable';
 
+/**
+ * Creates a fingerprint of the board structure for content comparison.
+ * Used to detect if incoming board data is actually different from current state.
+ */
+function getBoardFingerprint(board: KanbanBoard | null): string {
+  if (!board) return '';
+  return board.columns
+    .map(col => `${col.id}:[${col.tasks.map(t => t.id).join(',')}]`)
+    .join('|');
+}
+
 interface UseKanbanBoardReturn {
   board: KanbanBoard | null;
   isLoading: boolean;
@@ -26,6 +37,9 @@ export function useKanbanBoard(): UseKanbanBoardReturn {
   const isDraggingRef = useRef(isDragging);
   isDraggingRef.current = isDragging;
 
+  // Track current board fingerprint to detect actual changes
+  const boardFingerprintRef = useRef<string>('');
+
   // Notify extension that webview is ready
   useEffect(() => {
     postMessage({ type: 'webviewReady' });
@@ -35,14 +49,27 @@ export function useKanbanBoard(): UseKanbanBoardReturn {
   useVSCodeMessage(useCallback((message: any) => {
     switch (message.type) {
       case 'updateBoard':
+        // Always clear loading state when we receive data
+        setIsLoading(false);
+
         // Ignore backend updates while dragging to prevent flickering
-        if (!isDraggingRef.current) {
-          setBoard(message.board);
-          setIsLoading(false);
+        if (isDraggingRef.current) {
+          return;
         }
+
+        // Compare fingerprints to avoid unnecessary state updates
+        // This is the key optimization that prevents flickering!
+        const newFingerprint = getBoardFingerprint(message.board);
+        if (newFingerprint === boardFingerprintRef.current) {
+          // Content is identical, skip update to prevent re-render
+          return;
+        }
+
+        boardFingerprintRef.current = newFingerprint;
+        setBoard(message.board);
         break;
     }
-  }, [])); // Empty deps - uses ref for isDragging
+  }, [])); // Empty deps - uses refs for state
 
   const findTaskById = useCallback((taskId: string): KanbanTask | undefined => {
     if (!board) return undefined;
@@ -93,7 +120,11 @@ export function useKanbanBoard(): UseKanbanBoardReturn {
         return col;
       });
 
-      return { ...prev, columns: newColumns };
+      const newBoard = { ...prev, columns: newColumns };
+      // Update fingerprint to match our optimistic update
+      // This prevents the backend confirmation from causing a re-render
+      boardFingerprintRef.current = getBoardFingerprint(newBoard);
+      return newBoard;
     });
 
     postMessage({
@@ -110,6 +141,8 @@ export function useKanbanBoard(): UseKanbanBoardReturn {
     oldIndex: number,
     newIndex: number
   ) => {
+    let taskId: string | undefined;
+
     setBoard(prev => {
       if (!prev) return prev;
 
@@ -118,6 +151,8 @@ export function useKanbanBoard(): UseKanbanBoardReturn {
 
       const task = column.tasks[oldIndex];
       if (!task) return prev;
+
+      taskId = task.id;
 
       const newColumns = prev.columns.map(col => {
         if (col.id === columnId) {
@@ -129,21 +164,22 @@ export function useKanbanBoard(): UseKanbanBoardReturn {
         return col;
       });
 
-      return { ...prev, columns: newColumns };
+      const newBoard = { ...prev, columns: newColumns };
+      // Update fingerprint to match our optimistic update
+      boardFingerprintRef.current = getBoardFingerprint(newBoard);
+      return newBoard;
     });
 
-    const column = board?.columns.find(c => c.id === columnId);
-    const task = column?.tasks[oldIndex];
-    if (task) {
+    if (taskId) {
       postMessage({
         type: 'moveTask',
-        taskId: task.id,
+        taskId,
         fromColumnId: columnId,
         toColumnId: columnId,
         newIndex
       });
     }
-  }, [board, postMessage]);
+  }, [postMessage]);
 
   const updateTask = useCallback((taskId: string, updates: Partial<KanbanTask>) => {
     setBoard(prev => {

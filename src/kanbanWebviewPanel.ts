@@ -3,6 +3,17 @@ import * as fs from 'fs';
 
 import { MarkdownKanbanParser, KanbanBoard, KanbanTask, KanbanColumn } from './markdownParser';
 
+/**
+ * Creates a fingerprint of the board structure for content comparison.
+ * This is the "NormalizedDocument" pattern used by vscode-drawio to prevent
+ * unnecessary updates when content hasn't actually changed.
+ */
+function getBoardFingerprint(board: KanbanBoard): string {
+    return board.columns
+        .map(col => `${col.id}:${col.archived ? 'A' : ''}[${col.tasks.map(t => t.id).join(',')}]`)
+        .join('|');
+}
+
 export class KanbanWebviewPanel {
     public static currentPanel: KanbanWebviewPanel | undefined;
     public static readonly viewType = 'markdownKanbanPanel';
@@ -16,6 +27,20 @@ export class KanbanWebviewPanel {
     // Flag to prevent external reload when we just saved from webview
     // This is the key to preventing flickering!
     private _isSavingFromWebview = false;
+
+    // Track the last board fingerprint sent to webview
+    // This prevents sending duplicate updates (NormalizedDocument pattern from vscode-drawio)
+    private _lastSentFingerprint: string = '';
+
+    // Track if HTML has been built (only rebuild on first load or revive)
+    private _htmlBuilt = false;
+
+    // Queue for serializing save operations to prevent race conditions
+    // When dragging multiple cards quickly, saves must happen in order
+    private _saveQueue: Promise<void> = Promise.resolve();
+
+    // Counter to track pending operations (for extended save flag)
+    private _pendingOperations = 0;
 
     public static createOrShow(extensionUri: vscode.Uri, context: vscode.ExtensionContext, document?: vscode.TextDocument) {
         const column = vscode.window.activeTextEditor?.viewColumn;
@@ -93,12 +118,8 @@ export class KanbanWebviewPanel {
     private _handleMessage(message: any) {
         switch (message.type) {
             case 'webviewReady':
-                // Webview is ready, send the board data
-                const board = this._board || { title: 'Please open a Markdown Kanban file', columns: [] };
-                this._panel.webview.postMessage({
-                    type: 'updateBoard',
-                    board: board
-                });
+                // Webview is ready, send the board data (force to ensure initial load)
+                this._sendBoardUpdate(true);
                 break;
             case 'moveTask':
                 this.moveTask(message.taskId, message.fromColumnId, message.toColumnId, message.newIndex);
@@ -148,14 +169,17 @@ export class KanbanWebviewPanel {
         this._update();
     }
 
-    private _update(rebuildHtml = true) {
+    private _update() {
         if (!this._panel.webview) {return;}
 
-        if (rebuildHtml) {
+        // Only build HTML once per panel lifecycle (NormalizedDocument pattern)
+        // This prevents unnecessary DOM reconstruction which causes flickering
+        if (!this._htmlBuilt) {
             this._panel.webview.html = this._getHtmlForWebview();
+            this._htmlBuilt = true;
             // Send board data after a short delay to ensure webview is ready
             setTimeout(() => {
-                this._sendBoardUpdate();
+                this._sendBoardUpdate(true); // Force update on initial load
             }, 100);
         } else {
             // Just send the board data without rebuilding HTML
@@ -163,38 +187,27 @@ export class KanbanWebviewPanel {
         }
     }
 
-    private _sendBoardUpdate() {
+    /**
+     * Send board update to webview, but only if content has actually changed.
+     * This is the key optimization that prevents flickering - we compare
+     * fingerprints before sending to avoid redundant updates.
+     *
+     * @param force - Force send even if fingerprint matches (for initial load)
+     */
+    private _sendBoardUpdate(force = false) {
         const board = this._board || { title: 'Please open a Markdown Kanban file', columns: [] };
+        const fingerprint = getBoardFingerprint(board);
+
+        // Skip if content hasn't changed (unless forced)
+        if (!force && fingerprint === this._lastSentFingerprint) {
+            return;
+        }
+
+        this._lastSentFingerprint = fingerprint;
         this._panel.webview.postMessage({
             type: 'updateBoard',
             board: board
         });
-    }
-
-    private async saveToMarkdown() {
-        if (!this._document || !this._board) {return;}
-
-        // Set flag to prevent external document change listener from reloading
-        this._isSavingFromWebview = true;
-
-        // Get config settings
-        const config = vscode.workspace.getConfiguration('markdown-kanban');
-        const taskHeaderFormat = config.get<'title' | 'list'>('taskHeader', 'title');
-
-        const markdown = MarkdownKanbanParser.generateMarkdown(this._board, taskHeaderFormat);
-        const edit = new vscode.WorkspaceEdit();
-        edit.replace(
-            this._document.uri,
-            new vscode.Range(0, 0, this._document.lineCount, 0),
-            markdown
-        );
-        await vscode.workspace.applyEdit(edit);
-        await this._document.save();
-
-        // Reset flag after a delay to allow document change events to be processed
-        setTimeout(() => {
-            this._isSavingFromWebview = false;
-        }, 600);
     }
 
     /**
@@ -223,17 +236,71 @@ export class KanbanWebviewPanel {
         };
     }
 
-    private async performAction(action: () => void, skipUpdate = true) {
+    /**
+     * Performs an action and saves to markdown with proper queuing.
+     * This ensures rapid sequential operations (like dragging multiple cards)
+     * are processed in order without race conditions.
+     */
+    private performAction(action: () => void, skipUpdate = true) {
         if (!this._board) {return;}
 
+        // Execute the action immediately (updates in-memory state)
         action();
-        await this.saveToMarkdown();
+
+        // Increment pending operations counter
+        this._pendingOperations++;
+
+        // Set flag immediately to block external reloads
+        this._isSavingFromWebview = true;
+
+        // Queue the save operation to prevent race conditions
+        this._saveQueue = this._saveQueue.then(async () => {
+            await this._doSave();
+
+            this._pendingOperations--;
+
+            // Only reset the save flag when ALL pending operations are done
+            if (this._pendingOperations === 0) {
+                // Small delay to ensure document change events have been processed
+                setTimeout(() => {
+                    if (this._pendingOperations === 0) {
+                        this._isSavingFromWebview = false;
+                    }
+                }, 100);
+            }
+        }).catch(err => {
+            console.error('Error saving to markdown:', err);
+            this._pendingOperations--;
+            if (this._pendingOperations === 0) {
+                this._isSavingFromWebview = false;
+            }
+        });
 
         // Only update UI for operations not initiated by frontend
         // Frontend already has optimistic updates, so skip to avoid flash
         if (!skipUpdate) {
             this._update();
         }
+    }
+
+    /**
+     * Internal save operation - separated from performAction for queuing
+     */
+    private async _doSave() {
+        if (!this._document || !this._board) {return;}
+
+        const config = vscode.workspace.getConfiguration('markdown-kanban');
+        const taskHeaderFormat = config.get<'title' | 'list'>('taskHeader', 'title');
+
+        const markdown = MarkdownKanbanParser.generateMarkdown(this._board, taskHeaderFormat);
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+            this._document.uri,
+            new vscode.Range(0, 0, this._document.lineCount, 0),
+            markdown
+        );
+        await vscode.workspace.applyEdit(edit);
+        await this._document.save();
     }
 
     private moveTask(taskId: string, fromColumnId: string, toColumnId: string, newIndex: number) {

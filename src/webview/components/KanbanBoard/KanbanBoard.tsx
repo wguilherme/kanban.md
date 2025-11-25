@@ -8,13 +8,23 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCenter,
+  closestCorners,
   DragOverEvent,
 } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import type { KanbanBoard as KanbanBoardType, KanbanTask } from '../../types/kanban';
+import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
+import type { KanbanBoard as KanbanBoardType, KanbanTask, KanbanColumn } from '../../types/kanban';
 import { Column } from './Column';
 import { TaskCard } from './TaskCard';
+
+/**
+ * Creates a fingerprint of the columns structure for content comparison.
+ * This avoids unnecessary state updates when props change but content is identical.
+ */
+function getColumnsFingerprint(columns: KanbanColumn[]): string {
+  return columns
+    .map(col => `${col.id}:[${col.tasks.map(t => t.id).join(',')}]`)
+    .join('|');
+}
 
 interface KanbanBoardProps {
   board: KanbanBoardType;
@@ -33,12 +43,26 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<KanbanTask | null>(null);
 
-  // Track the current over column during drag for visual feedback
-  const [overColumnId, setOverColumnId] = useState<string | null>(null);
+  // Local columns state for optimistic updates during drag
+  // This allows the UI to show real-time preview of where items will land
+  const [columns, setColumns] = useState<KanbanColumn[]>(board.columns);
 
-  // Use refs to store the latest board state for event handlers
-  const boardRef = useRef(board);
-  boardRef.current = board;
+  // Track the original position before drag started (for calling callbacks on drop)
+  const dragStartState = useRef<{
+    taskId: string;
+    sourceColumnId: string;
+    sourceIndex: number;
+  } | null>(null);
+
+  // Sync local state with props when board changes (but not during drag)
+  // IMPORTANT: Compare by content (fingerprint), not by reference, to avoid
+  // unnecessary re-renders when props update but data is identical
+  const isDraggingRef = useRef(false);
+  const boardFingerprint = getColumnsFingerprint(board.columns);
+  const localFingerprint = getColumnsFingerprint(columns);
+  if (!isDraggingRef.current && boardFingerprint !== localFingerprint) {
+    setColumns(board.columns);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -51,95 +75,174 @@ export function KanbanBoard({
     })
   );
 
-  const findTask = useCallback((taskId: string): KanbanTask | undefined => {
-    for (const column of boardRef.current.columns) {
+  const findTask = useCallback((taskId: string, cols: KanbanColumn[]): KanbanTask | undefined => {
+    for (const column of cols) {
       const task = column.tasks.find(t => t.id === taskId);
       if (task) return task;
     }
     return undefined;
   }, []);
 
-  const findColumnByTaskId = useCallback((taskId: string) => {
-    return boardRef.current.columns.find(col =>
-      col.tasks.some(t => t.id === taskId)
-    );
+  const findColumnByTaskId = useCallback((taskId: string, cols: KanbanColumn[]) => {
+    return cols.find(col => col.tasks.some(t => t.id === taskId));
   }, []);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
-    const task = findTask(active.id as string);
-    setActiveTask(task || null);
+    const taskId = active.id as string;
+
+    setColumns(currentColumns => {
+      const task = findTask(taskId, currentColumns);
+      const sourceColumn = findColumnByTaskId(taskId, currentColumns);
+
+      if (task && sourceColumn) {
+        setActiveTask(task);
+        dragStartState.current = {
+          taskId,
+          sourceColumnId: sourceColumn.id,
+          sourceIndex: sourceColumn.tasks.findIndex(t => t.id === taskId),
+        };
+      }
+
+      return currentColumns;
+    });
+
+    isDraggingRef.current = true;
     onDragStateChange(true);
-  }, [findTask, onDragStateChange]);
+  }, [findTask, findColumnByTaskId, onDragStateChange]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { over } = event;
-    if (over) {
-      // Check if over a column directly or a task in a column
-      const column = boardRef.current.columns.find(c => c.id === over.id) ||
-        boardRef.current.columns.find(c => c.tasks.some(t => t.id === over.id));
-      setOverColumnId(column?.id || null);
-    } else {
-      setOverColumnId(null);
-    }
-  }, []);
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    setColumns(currentColumns => {
+      const activeColumn = findColumnByTaskId(activeId, currentColumns);
+
+      // Determine if over a column or a task
+      const overColumn = currentColumns.find(c => c.id === overId) ||
+        findColumnByTaskId(overId, currentColumns);
+
+      if (!activeColumn || !overColumn) return currentColumns;
+
+      // If in the same column, let sortable handle reordering
+      if (activeColumn.id === overColumn.id) {
+        const oldIndex = activeColumn.tasks.findIndex(t => t.id === activeId);
+        const newIndex = activeColumn.tasks.findIndex(t => t.id === overId);
+
+        if (oldIndex !== newIndex && newIndex !== -1) {
+          return currentColumns.map(col => {
+            if (col.id === activeColumn.id) {
+              return {
+                ...col,
+                tasks: arrayMove(col.tasks, oldIndex, newIndex),
+              };
+            }
+            return col;
+          });
+        }
+        return currentColumns;
+      }
+
+      // Moving to a different column - this is the key for cross-column preview!
+      const activeIndex = activeColumn.tasks.findIndex(t => t.id === activeId);
+      const task = activeColumn.tasks[activeIndex];
+
+      if (!task) return currentColumns;
+
+      // Calculate target index
+      let targetIndex: number;
+      if (overId === overColumn.id) {
+        // Dropped on column itself - add to end
+        targetIndex = overColumn.tasks.length;
+      } else {
+        // Dropped on a task - insert at that position
+        targetIndex = overColumn.tasks.findIndex(t => t.id === overId);
+        if (targetIndex === -1) targetIndex = overColumn.tasks.length;
+      }
+
+      // Move task between columns
+      return currentColumns.map(col => {
+        if (col.id === activeColumn.id) {
+          return {
+            ...col,
+            tasks: col.tasks.filter(t => t.id !== activeId),
+          };
+        }
+        if (col.id === overColumn.id) {
+          const newTasks = [...col.tasks];
+          newTasks.splice(targetIndex, 0, task);
+          return {
+            ...col,
+            tasks: newTasks,
+          };
+        }
+        return col;
+      });
+    });
+  }, [findColumnByTaskId]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
+    const startState = dragStartState.current;
 
     setActiveTask(null);
-    setOverColumnId(null);
+    isDraggingRef.current = false;
+    dragStartState.current = null;
 
     // Delay the drag state change to prevent backend update flash
     setTimeout(() => onDragStateChange(false), 200);
 
-    if (!over) return;
+    if (!over || !startState) return;
 
     const activeTaskId = active.id as string;
-    const overId = over.id as string;
 
-    const sourceColumn = findColumnByTaskId(activeTaskId);
-    if (!sourceColumn) return;
+    // Get the final position from local columns state
+    setColumns(currentColumns => {
+      const targetColumn = findColumnByTaskId(activeTaskId, currentColumns);
+      if (!targetColumn) return currentColumns;
 
-    // Determine target column
-    const targetColumn = boardRef.current.columns.find(c => c.id === overId) ||
-      boardRef.current.columns.find(c => c.tasks.some(t => t.id === overId));
+      const targetIndex = targetColumn.tasks.findIndex(t => t.id === activeTaskId);
 
-    if (!targetColumn) return;
+      // Check if position actually changed
+      const sameColumn = startState.sourceColumnId === targetColumn.id;
+      const sameIndex = startState.sourceIndex === targetIndex;
 
-    const sourceIndex = sourceColumn.tasks.findIndex(t => t.id === activeTaskId);
-
-    // Calculate target index
-    let targetIndex: number;
-    if (overId === targetColumn.id) {
-      // Dropped on column area - add to end
-      targetIndex = targetColumn.tasks.length;
-    } else {
-      // Dropped on a task
-      targetIndex = targetColumn.tasks.findIndex(t => t.id === overId);
-    }
-
-    // Same column - reorder
-    if (sourceColumn.id === targetColumn.id) {
-      if (sourceIndex !== targetIndex) {
-        onReorderTask(sourceColumn.id, sourceIndex, targetIndex);
+      if (sameColumn && sameIndex) {
+        // No change, nothing to persist
+        return currentColumns;
       }
-    } else {
-      // Different column - move
-      onMoveTask(activeTaskId, sourceColumn.id, targetColumn.id, targetIndex);
-    }
+
+      if (sameColumn) {
+        // Reordered within same column
+        onReorderTask(targetColumn.id, startState.sourceIndex, targetIndex);
+      } else {
+        // Moved to different column
+        onMoveTask(activeTaskId, startState.sourceColumnId, targetColumn.id, targetIndex);
+      }
+
+      return currentColumns;
+    });
   }, [findColumnByTaskId, onMoveTask, onReorderTask, onDragStateChange]);
 
   const handleDragCancel = useCallback(() => {
     setActiveTask(null);
-    setOverColumnId(null);
+    isDraggingRef.current = false;
+    dragStartState.current = null;
+
+    // Reset columns to board state on cancel
+    setColumns(board.columns);
+
     setTimeout(() => onDragStateChange(false), 200);
-  }, [onDragStateChange]);
+  }, [board.columns, onDragStateChange]);
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={closestCorners}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -152,7 +255,7 @@ export function KanbanBoard({
 
         <main className="flex-1 overflow-auto p-4">
           <div className="flex gap-4">
-            {board.columns.map((column) => (
+            {columns.map((column) => (
               <Column
                 key={column.id}
                 column={column}

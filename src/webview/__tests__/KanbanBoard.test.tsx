@@ -653,4 +653,111 @@ describe('State Change Simulation - Move Task Between Columns', () => {
     // and not re-render if their props didn't change
     expect(stats?.renderCount).toBeLessThanOrEqual(3);
   });
+
+  it('should correctly sync when data actually changes', async () => {
+    /**
+     * This test verifies that when board data ACTUALLY changes,
+     * the sync logic correctly updates the local state.
+     *
+     * When data differs (not just reference), 2 renders are expected:
+     * 1. React re-renders due to prop change
+     * 2. Sync updates local columns state because data is different
+     *
+     * This is correct behavior - we only want to avoid double render
+     * when data is IDENTICAL (which is tested in the next test).
+     */
+    const initialBoard = createMockBoard();
+
+    const { rerender } = render(
+      <RenderProfiler id="KanbanBoard-Sync">
+        <KanbanBoard
+          board={initialBoard}
+          onMoveTask={mockOnMoveTask}
+          onReorderTask={mockOnReorderTask}
+          onUpdateTask={mockOnUpdateTask}
+          onDragStateChange={mockOnDragStateChange}
+        />
+      </RenderProfiler>
+    );
+
+    clearRenderStats();
+
+    // Board with ACTUALLY different data (task moved to different column)
+    const updatedBoard = moveTaskInBoard(
+      initialBoard,
+      'task-1-1',
+      'column-1',
+      'column-2',
+      0
+    );
+
+    await act(async () => {
+      rerender(
+        <RenderProfiler id="KanbanBoard-Sync">
+          <KanbanBoard
+            board={updatedBoard}
+            onMoveTask={mockOnMoveTask}
+            onReorderTask={mockOnReorderTask}
+            onUpdateTask={mockOnUpdateTask}
+            onDragStateChange={mockOnDragStateChange}
+          />
+        </RenderProfiler>
+      );
+    });
+
+    const stats = getRenderStats('KanbanBoard-Sync');
+    console.log('Renders after board prop sync:', stats?.renderCount);
+    console.log('Render phases:', stats?.renders.map(r => r.phase));
+
+    // When data actually changes, 2 renders are expected and correct:
+    // 1. React render from prop change
+    // 2. Local state sync because data (fingerprint) differs
+    expect(stats?.renderCount).toBe(2);
+  });
+
+  it('should NOT sync columns when data is identical but reference differs', async () => {
+    /**
+     * Edge case test: Parent creates a new array reference but data is identical.
+     * The component should detect this and NOT trigger a re-render.
+     */
+    const initialBoard = createMockBoard();
+
+    const { rerender } = render(
+      <RenderProfiler id="KanbanBoard-RefCheck">
+        <KanbanBoard
+          board={initialBoard}
+          onMoveTask={mockOnMoveTask}
+          onReorderTask={mockOnReorderTask}
+          onUpdateTask={mockOnUpdateTask}
+          onDragStateChange={mockOnDragStateChange}
+        />
+      </RenderProfiler>
+    );
+
+    clearRenderStats();
+
+    // Create a deep clone - different reference, same data
+    const clonedBoard = JSON.parse(JSON.stringify(initialBoard));
+
+    await act(async () => {
+      rerender(
+        <RenderProfiler id="KanbanBoard-RefCheck">
+          <KanbanBoard
+            board={clonedBoard}
+            onMoveTask={mockOnMoveTask}
+            onReorderTask={mockOnReorderTask}
+            onUpdateTask={mockOnUpdateTask}
+            onDragStateChange={mockOnDragStateChange}
+          />
+        </RenderProfiler>
+      );
+    });
+
+    const stats = getRenderStats('KanbanBoard-RefCheck');
+    console.log('Renders after identical data with new reference:', stats?.renderCount);
+
+    // Should still render once (React always re-renders on prop change)
+    // But should NOT trigger an additional sync render
+    expect(stats?.renderCount).toBe(1);
+  });
 });
