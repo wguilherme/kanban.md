@@ -34,7 +34,7 @@
         {
           "id": "markdown-kanban",
           "title": "Markdown Kanban",
-          "icon": "$(list-tree)"
+          "icon": "$(markdown)"
         }
       ]
     },
@@ -42,7 +42,8 @@
       "markdown-kanban": [
         {
           "id": "markdown-kanban.boards",
-          "name": "Kanban Boards"
+          "name": "Kanban Boards",
+          "icon": "$(markdown)"
         }
       ]
     },
