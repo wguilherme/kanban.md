@@ -1,11 +1,11 @@
 {
-  "name": "markdown-kanban",
-  "displayName": "Markdown Kanban",
-  "description": "Kanban board for Markdown files",
+  "name": "kanban-md",
+  "displayName": "Kanban.md",
+  "description": "Transform your Markdown files into powerful, interactive Kanban boards",
   "publisher": "wguilherme",
-  "version": "1.3.1",
+  "version": "0.1.0",
   "engines": {
-    "vscode": "^1.74.0"
+    "vscode": "^1.106.0"
   },
   "categories": [
     "Other"
@@ -17,9 +17,7 @@
     "project management",
     "todo",
     "productivity",
-    "cursor available",
-    "看板",
-    "任务管理"
+    "cursor available"
   ],
   "icon": "./imgs/logo.png",
   "activationEvents": [

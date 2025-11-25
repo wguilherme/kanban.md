@@ -45,7 +45,7 @@ export class MarkdownKanbanParser {
       const line = lines[i];
       const trimmedLine = line.trim();
 
-      // 检查代码块标记
+      // Check code block markers
       if (trimmedLine.startsWith('```')) {
         if (inTaskDescription) {
           if (trimmedLine === '```md' || trimmedLine === '```') {
@@ -55,7 +55,7 @@ export class MarkdownKanbanParser {
         }
       }
 
-      // 如果在代码块内部，处理为描述内容
+      // If inside code block, process as description content
       if (inCodeBlock && inTaskDescription && currentTask) {
         if (trimmedLine === '```') {
           inCodeBlock = false;
@@ -70,7 +70,7 @@ export class MarkdownKanbanParser {
         continue;
       }
 
-      // 解析看板标题
+      // Parse board title
       if (!inCodeBlock && trimmedLine.startsWith('# ') && !board.title) {
         board.title = trimmedLine.substring(2).trim();
         this.finalizeCurrentTask(currentTask, currentColumn);
@@ -80,7 +80,7 @@ export class MarkdownKanbanParser {
         continue;
       }
 
-      // 解析列标题
+      // Parse column title
       if (!inCodeBlock && trimmedLine.startsWith('## ')) {
         this.finalizeCurrentTask(currentTask, currentColumn);
         currentTask = null;
@@ -91,7 +91,7 @@ export class MarkdownKanbanParser {
         let columnTitle = trimmedLine.substring(3).trim();
         let isArchived = false;
         
-        // 检查是否包含 [Archived] 标记
+        // Check for [Archived] marker
         if (columnTitle.endsWith('[Archived]')) {
           isArchived = true;
           columnTitle = columnTitle.replace(/\s*\[Archived\]$/, '').trim();
@@ -108,7 +108,7 @@ export class MarkdownKanbanParser {
         continue;
       }
 
-      // 解析任务标题
+      // Parse task title
       if (!inCodeBlock && this.isTaskTitle(line, trimmedLine)) {
         this.finalizeCurrentTask(currentTask, currentColumn);
 
@@ -119,7 +119,7 @@ export class MarkdownKanbanParser {
             taskTitle = trimmedLine.substring(4).trim();
           } else {
             taskTitle = trimmedLine.substring(2).trim();
-            // 移除复选框标记
+            // Remove checkbox markers
             if (taskTitle.startsWith('[ ] ') || taskTitle.startsWith('[x] ')) {
               taskTitle = taskTitle.substring(4).trim();
             }
@@ -137,7 +137,7 @@ export class MarkdownKanbanParser {
         continue;
       }
 
-      // 解析任务属性
+      // Parse task properties
       if (!inCodeBlock && currentTask && inTaskProperties) {
         // Parse inline hashtags
         if (this.parseInlineTags(line, currentTask)) {
@@ -148,12 +148,12 @@ export class MarkdownKanbanParser {
           continue;
         }
 
-        // 解析 steps 中的具体步骤项
+        // Parse step items
         if (this.parseTaskStep(line, currentTask)) {
           continue;
         }
 
-        // 检查是否开始描述部分
+        // Check if description section starts
         if (line.match(/^\s+```md/)) {
           inTaskProperties = false;
           inTaskDescription = true;
@@ -162,7 +162,7 @@ export class MarkdownKanbanParser {
         }
       }
 
-      // 处理空行
+      // Handle empty lines
       if (trimmedLine === '') {
         continue;
       }

@@ -145,7 +145,7 @@ export class KanbanWebviewPanel {
     }
 
     private _update() {
-        if (!this._panel.webview) return;
+        if (!this._panel.webview) {return;}
 
         this._panel.webview.html = this._getHtmlForWebview();
 
@@ -160,7 +160,7 @@ export class KanbanWebviewPanel {
     }
 
     private async saveToMarkdown() {
-        if (!this._document || !this._board) return;
+        if (!this._document || !this._board) {return;}
 
         // 获取配置设置
         const config = vscode.workspace.getConfiguration('markdown-kanban');
@@ -183,10 +183,10 @@ export class KanbanWebviewPanel {
 
     private findTask(columnId: string, taskId: string): { column: KanbanColumn; task: KanbanTask; index: number } | undefined {
         const column = this.findColumn(columnId);
-        if (!column) return undefined;
+        if (!column) {return undefined;}
 
         const taskIndex = column.tasks.findIndex(task => task.id === taskId);
-        if (taskIndex === -1) return undefined;
+        if (taskIndex === -1) {return undefined;}
 
         return {
             column,
@@ -196,7 +196,7 @@ export class KanbanWebviewPanel {
     }
 
     private async performAction(action: () => void) {
-        if (!this._board) return;
+        if (!this._board) {return;}
         
         action();
         await this.saveToMarkdown();
@@ -208,10 +208,10 @@ export class KanbanWebviewPanel {
             const fromColumn = this.findColumn(fromColumnId);
             const toColumn = this.findColumn(toColumnId);
 
-            if (!fromColumn || !toColumn) return;
+            if (!fromColumn || !toColumn) {return;}
 
             const taskIndex = fromColumn.tasks.findIndex(task => task.id === taskId);
-            if (taskIndex === -1) return;
+            if (taskIndex === -1) {return;}
 
             const task = fromColumn.tasks.splice(taskIndex, 1)[0];
             toColumn.tasks.splice(newIndex, 0, task);
@@ -220,7 +220,7 @@ export class KanbanWebviewPanel {
 
     private updateTask(taskId: string, updates: Partial<KanbanTask>) {
         this.performAction(() => {
-            if (!this._board) return;
+            if (!this._board) {return;}
 
             // Find the task in any column
             for (const column of this._board.columns) {
@@ -237,7 +237,7 @@ export class KanbanWebviewPanel {
     private addTask(columnId: string, taskData: any) {
         this.performAction(() => {
             const column = this.findColumn(columnId);
-            if (!column) return;
+            if (!column) {return;}
 
             const newTask: KanbanTask = {
                 id: Math.random().toString(36).substr(2, 9),
@@ -258,10 +258,10 @@ export class KanbanWebviewPanel {
     private deleteTask(taskId: string, columnId: string) {
         this.performAction(() => {
             const column = this.findColumn(columnId);
-            if (!column) return;
+            if (!column) {return;}
 
             const taskIndex = column.tasks.findIndex(task => task.id === taskId);
-            if (taskIndex === -1) return;
+            if (taskIndex === -1) {return;}
 
             column.tasks.splice(taskIndex, 1);
         });
@@ -270,7 +270,7 @@ export class KanbanWebviewPanel {
     private editTask(taskId: string, columnId: string, taskData: any) {
         this.performAction(() => {
             const result = this.findTask(columnId, taskId);
-            if (!result) return;
+            if (!result) {return;}
 
             Object.assign(result.task, {
                 title: taskData.title,
@@ -299,7 +299,7 @@ export class KanbanWebviewPanel {
     private reorderTaskSteps(taskId: string, columnId: string, newOrder: number[]) {
         this.performAction(() => {
             const result = this.findTask(columnId, taskId);
-            if (!result?.task.steps) return;
+            if (!result?.task.steps) {return;}
 
             const originalSteps = [...result.task.steps];
             const reorderedSteps = newOrder
@@ -312,7 +312,7 @@ export class KanbanWebviewPanel {
 
     private addColumn(title: string) {
         this.performAction(() => {
-            if (!this._board) return;
+            if (!this._board) {return;}
 
             const newColumn: KanbanColumn = {
                 id: Math.random().toString(36).substr(2, 9),
@@ -326,7 +326,7 @@ export class KanbanWebviewPanel {
 
     private moveColumn(fromIndex: number, toIndex: number) {
         this.performAction(() => {
-            if (!this._board || fromIndex === toIndex) return;
+            if (!this._board || fromIndex === toIndex) {return;}
 
             const columns = this._board.columns;
             const column = columns.splice(fromIndex, 1)[0];
@@ -344,7 +344,7 @@ export class KanbanWebviewPanel {
     private toggleColumnArchive(columnId: string, archived: boolean) {
         this.performAction(() => {
             const column = this.findColumn(columnId);
-            if (!column) return;
+            if (!column) {return;}
 
             column.archived = archived;
         });

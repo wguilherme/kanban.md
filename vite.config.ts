@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
   build: {
@@ -21,16 +20,6 @@ export default defineConfig({
     target: 'node22',
     ssr: true,
   },
-  plugins: [
-    viteStaticCopy({
-      targets: [
-        {
-          src: 'src/html/*',
-          dest: 'src/html',
-        },
-      ],
-    }),
-  ],
   resolve: {
     extensions: ['.ts', '.js'],
   },
