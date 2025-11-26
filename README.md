@@ -68,9 +68,16 @@ Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed t
   - TypeScript 5.9 with strict mode
   - Vite 7 for lightning-fast builds
   - TailwindCSS 3 for utility-first styling
-- **Atomic Design Pattern**: Component structure (Atoms → Molecules → Organisms)
-- **Optimistic UI Updates**: Instant visual feedback before backend confirmation
+- **Flicker-Free Drag & Drop**:
+  - Fingerprint-based content comparison (NormalizedDocument pattern)
+  - Promise queue for serialized save operations
+  - Optimistic UI updates with backend sync protection
+- **Performance Optimizations**:
+  - Memoized components (`React.memo`) to prevent unnecessary re-renders
+  - Single HTML build per panel lifecycle
+  - Ref-based state tracking for message handlers
 - **Collision Detection**: Smart `closestCorners` algorithm for accurate drop targeting
+- **Cross-Column Preview**: Real-time visual feedback when dragging tasks between columns
 
 ---
 
