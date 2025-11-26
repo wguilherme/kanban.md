@@ -6,7 +6,7 @@
 
 **Transform your Markdown files into powerful, interactive Kanban boards**
 
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](https://marketplace.visualstudio.com/)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://marketplace.visualstudio.com/items?itemName=wguilherme.kanban-md)
 [![VSCode](https://img.shields.io/badge/VSCode-1.74.0+-green.svg)](https://code.visualstudio.com/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
@@ -86,7 +86,7 @@ Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed t
 ### From VSIX
 
 ```bash
-code --install-extension markdown-kanban-1.3.1.vsix
+code --install-extension kanban-md-0.1.1.vsix
 ```
 
 ### Requirements
