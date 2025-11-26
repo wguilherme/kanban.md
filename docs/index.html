@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kanban.md - Visual Kanban boards for VS Code</title>
+  <meta name="description" content="Transform any Markdown file into a visual Kanban board. Drag, drop, and organize your tasks without leaving VS Code.">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-secondary: #161b22;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --border: #30363d;
+      --code-bg: #1f2428;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 4rem 0 3rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    h1 code {
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 6px;
+      font-size: 0.9em;
+    }
+
+    .tagline {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-muted);
+    }
+
+    /* Main content - Markdown style */
+    main {
+      padding: 3rem 0;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin: 2.5rem 0 1rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2:first-child {
+      margin-top: 0;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    ul {
+      margin: 1rem 0;
+      padding-left: 2rem;
+    }
+
+    li {
+      margin: 0.5rem 0;
+      color: var(--text-muted);
+    }
+
+    li strong {
+      color: var(--text);
+    }
+
+    code {
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-size: 0.9em;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    /* Features grid */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .feature {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.25rem;
+    }
+
+    .feature h3 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature p {
+      font-size: 0.9rem;
+      margin: 0;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2rem;
+      }
+
+      .tagline {
+        font-size: 1rem;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+
+      header {
+        padding: 2rem 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><code>Kanban.md</code></h1>
+      <p class="tagline">VS Code meets Kanban. Transform any Markdown file into a visual board.</p>
+      <div class="cta-buttons">
+        <a href="https://marketplace.visualstudio.com/items?itemName=wguilherme.kanban-md" class="btn btn-primary">
+          Install Extension
+        </a>
+        <a href="https://github.com/wguilherme/kanban.md" class="btn btn-secondary">
+          View on GitHub
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <h2>Features</h2>
+      <div class="features">
+        <div class="feature">
+          <h3>Drag & Drop</h3>
+          <p>Flicker-free task management with smooth animations and cross-column preview.</p>
+        </div>
+        <div class="feature">
+          <h3>Pure Markdown</h3>
+          <p>Your data stays in <code>.md</code> files. No lock-in, no sync, no cloud.</p>
+        </div>
+        <div class="feature">
+          <h3>Real-time Sync</h3>
+          <p>Changes in the board reflect instantly in your Markdown file and vice-versa.</p>
+        </div>
+        <div class="feature">
+          <h3>Rich Tasks</h3>
+          <p>Priorities, due dates, checklists, hashtags, and workload indicators.</p>
+        </div>
+      </div>
+
+      <h2>Quick Start</h2>
+      <p>Create a file ending in <code>.kanban.md</code> and open it with the Kanban view:</p>
+      <pre><code># My Board
+
+## To Do
+### Task one
+### Task two
+
+## In Progress
+### Working on this
+
+## Done
+### Completed task</code></pre>
+
+      <h2>Why Kanban.md?</h2>
+      <ul>
+        <li><strong>No context switching</strong> — manage tasks without leaving your editor</li>
+        <li><strong>Version control friendly</strong> — it's just Markdown, commit and diff as usual</li>
+        <li><strong>Works offline</strong> — no account, no internet required</li>
+        <li><strong>Lightweight</strong> — built with React 19 and optimized for performance</li>
+      </ul>
+    </main>
+
+    <footer>
+      <p>
+        Made by <a href="https://github.com/wguilherme">@wguilherme</a> ·
+        <a href="https://github.com/wguilherme/kanban.md">GitHub</a> ·
+        <a href="https://marketplace.visualstudio.com/items?itemName=wguilherme.kanban-md">VS Code Marketplace</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
