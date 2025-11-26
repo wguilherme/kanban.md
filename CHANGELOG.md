@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented optimistic updates for smoother UX
   - Added automated tests for render behavior
 
+### Chore
+
+- Remove development documentation from `.vscodeignore` to enable Changelog tab in marketplace
+
 ## [0.0.1] - 2025-11-21
 
 ### Features
@@ -32,10 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Quick Board Creation**: One-click board creation with pre-filled template
 
-- **Drag & Drop**: Full drag-and-drop support for tasks
+- **Drag & Drop**: Full drag-and-drop support for tasks using DnD Kit
   - Move tasks between columns
   - Reorder tasks within columns
-  - Real-time visual feedback with DnD Kit
+  - Real-time visual feedback with semantic styles
 
 - **Task Features**:
   - Inline hashtags support for tags
@@ -48,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Archive columns support
   - Configurable task header format (title or list)
 
+- **Webview**: React-based Kanban board with VSCode API integration
+
 - **Build System**: Modern Vite 7 build tooling with TypeScript 5.9
+
+- **Developer Tools**: Added Makefile for build, check, clean, and install tasks
 
 ---
