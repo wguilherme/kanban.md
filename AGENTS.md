@@ -1,4 +1,4 @@
-# Claude Code Instructions
+# Agents Code Instructions
 
 ## Base Prompt
 
@@ -111,11 +111,21 @@ markdown-kanban/
 **Webview → Extension:**
 
 ```typescript
-{ type: 'webviewReady' }
-{ type: 'moveTask', taskId, fromColumnId, toColumnId, newIndex }
-{ type: 'updateTask', taskId, updates }
-{ type: 'addTask', columnId, taskData }
-{ type: 'deleteTask', taskId, columnId }
+{
+  type: "webviewReady";
+}
+{
+  type: "moveTask", taskId, fromColumnId, toColumnId, newIndex;
+}
+{
+  type: "updateTask", taskId, updates;
+}
+{
+  type: "addTask", columnId, taskData;
+}
+{
+  type: "deleteTask", taskId, columnId;
+}
 ```
 
 ---
@@ -140,8 +150,8 @@ Cria uma "impressão digital" do estado do board para comparação rápida:
 // Em kanbanWebviewPanel.ts e useKanbanBoard.ts
 function getBoardFingerprint(board: KanbanBoard): string {
   return board.columns
-    .map(col => `${col.id}:[${col.tasks.map(t => t.id).join(',')}]`)
-    .join('|');
+    .map((col) => `${col.id}:[${col.tasks.map((t) => t.id).join(",")}]`)
+    .join("|");
 }
 ```
 
@@ -254,8 +264,8 @@ interface KanbanTask {
   title: string;
   description?: string;
   tags?: string[];
-  priority?: 'low' | 'medium' | 'high';
-  workload?: 'Easy' | 'Normal' | 'Hard' | 'Extreme';
+  priority?: "low" | "medium" | "high";
+  workload?: "Easy" | "Normal" | "Hard" | "Extreme";
   dueDate?: string;
   defaultExpanded?: boolean;
   steps?: Array<{ text: string; completed: boolean }>;
@@ -278,15 +288,15 @@ interface KanbanBoard {
 
 ## Otimizações de Performance
 
-| Técnica | Local | Propósito |
-|---------|-------|-----------|
-| Fingerprint | kanbanWebviewPanel + useKanbanBoard | Evita updates redundantes |
-| Promise Queue | kanbanWebviewPanel | Serializa saves concorrentes |
-| Optimistic Updates | useKanbanBoard | Feedback instantâneo |
-| React.memo | TaskCard, Column | Previne re-renders cascata |
-| useMemo | KanbanBoard (taskIds) | Evita recálculo do SortableContext |
-| Local Drag State | KanbanBoard | Preview sem latência do backend |
-| Guard Flag | extension.ts | Previne reload duplo |
+| Técnica            | Local                               | Propósito                          |
+| ------------------ | ----------------------------------- | ---------------------------------- |
+| Fingerprint        | kanbanWebviewPanel + useKanbanBoard | Evita updates redundantes          |
+| Promise Queue      | kanbanWebviewPanel                  | Serializa saves concorrentes       |
+| Optimistic Updates | useKanbanBoard                      | Feedback instantâneo               |
+| React.memo         | TaskCard, Column                    | Previne re-renders cascata         |
+| useMemo            | KanbanBoard (taskIds)               | Evita recálculo do SortableContext |
+| Local Drag State   | KanbanBoard                         | Preview sem latência do backend    |
+| Guard Flag         | extension.ts                        | Previne reload duplo               |
 
 ---
 

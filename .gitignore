@@ -6,3 +6,4 @@ node_modules
 .DS_Store
 test_files/
 .env
+CLAUDE.md
