@@ -237,7 +237,11 @@ export class MarkdownKanbanParser {
       case 'tags':
         const tagsMatch = value.match(/\[(.*)\]/);
         if (tagsMatch) {
-          task.tags = tagsMatch[1].split(',').map(tag => tag.trim());
+          const arrayTags = tagsMatch[1].split(',').map(tag => tag.trim());
+          if (!task.tags) {
+            task.tags = [];
+          }
+          task.tags.push(...arrayTags);
         }
         break;
       case 'priority':

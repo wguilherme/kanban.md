@@ -42,6 +42,12 @@ export class KanbanWebviewPanel {
     // Counter to track pending operations (for extended save flag)
     private _pendingOperations = 0;
 
+    // Track if modal is open - defer saves while modal is open
+    private _isModalOpen = false;
+
+    // Flag to track if there are pending changes to save when modal closes
+    private _hasPendingChanges = false;
+
     public static createOrShow(extensionUri: vscode.Uri, context: vscode.ExtensionContext, document?: vscode.TextDocument) {
         const column = vscode.window.activeTextEditor?.viewColumn;
 
@@ -154,7 +160,45 @@ export class KanbanWebviewPanel {
             case 'toggleColumnArchive':
                 this.toggleColumnArchive(message.columnId, message.archived);
                 break;
+            case 'modalStateChange':
+                this._handleModalStateChange(message.isOpen);
+                break;
         }
+    }
+
+    /**
+     * Handle modal state change from webview.
+     * When modal closes, flush any pending saves.
+     */
+    private _handleModalStateChange(isOpen: boolean) {
+        this._isModalOpen = isOpen;
+
+        if (!isOpen && this._hasPendingChanges) {
+            // Modal closed and we have pending changes - save now
+            this._flushPendingSave();
+        }
+    }
+
+    /**
+     * Flush pending save when modal closes
+     */
+    private _flushPendingSave() {
+        if (!this._hasPendingChanges) {return;}
+
+        this._hasPendingChanges = false;
+        this._isSavingFromWebview = true;
+
+        this._saveQueue = this._saveQueue.then(async () => {
+            await this._doSave();
+
+            // Small delay before allowing external reloads
+            setTimeout(() => {
+                this._isSavingFromWebview = false;
+            }, 100);
+        }).catch(err => {
+            console.error('Error saving to markdown:', err);
+            this._isSavingFromWebview = false;
+        });
     }
 
     public loadMarkdownFile(document: vscode.TextDocument) {
@@ -240,6 +284,9 @@ export class KanbanWebviewPanel {
      * Performs an action and saves to markdown with proper queuing.
      * This ensures rapid sequential operations (like dragging multiple cards)
      * are processed in order without race conditions.
+     *
+     * When modal is open, saves are deferred until modal closes to prevent
+     * the webview from reloading and closing the modal unexpectedly.
      */
     private performAction(action: () => void, skipUpdate = true) {
         if (!this._board) {return;}
@@ -247,6 +294,26 @@ export class KanbanWebviewPanel {
         // Execute the action immediately (updates in-memory state)
         action();
 
+        // If modal is open, defer the save until modal closes
+        if (this._isModalOpen) {
+            this._hasPendingChanges = true;
+            return;
+        }
+
+        // Modal not open - save immediately
+        this._saveImmediately();
+
+        // Only update UI for operations not initiated by frontend
+        // Frontend already has optimistic updates, so skip to avoid flash
+        if (!skipUpdate) {
+            this._update();
+        }
+    }
+
+    /**
+     * Save immediately (when modal is not open)
+     */
+    private _saveImmediately() {
         // Increment pending operations counter
         this._pendingOperations++;
 
@@ -275,12 +342,6 @@ export class KanbanWebviewPanel {
                 this._isSavingFromWebview = false;
             }
         });
-
-        // Only update UI for operations not initiated by frontend
-        // Frontend already has optimistic updates, so skip to avoid flash
-        if (!skipUpdate) {
-            this._update();
-        }
     }
 
     /**

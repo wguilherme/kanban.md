@@ -1,14 +1,30 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { KanbanTask } from '../types/kanban';
 
 interface TaskModalProps {
   task: KanbanTask;
   onClose: () => void;
   onToggleStep: (stepIndex: number) => void;
+  onUpdateTask?: (taskId: string, updates: Partial<KanbanTask>) => void;
 }
 
-export function TaskModal({ task, onClose, onToggleStep }: TaskModalProps) {
-  // Close modal on Escape key
+type Priority = 'low' | 'medium' | 'high' | undefined;
+type Workload = 'Easy' | 'Normal' | 'Hard' | 'Extreme' | undefined;
+
+const PRIORITY_CYCLE: Priority[] = [undefined, 'low', 'medium', 'high'];
+const WORKLOAD_CYCLE: Workload[] = [undefined, 'Easy', 'Normal', 'Hard', 'Extreme'];
+
+export function TaskModal({ task, onClose, onToggleStep, onUpdateTask }: TaskModalProps) {
+  const [localSteps, setLocalSteps] = useState(task.steps || []);
+  const [localDescription, setLocalDescription] = useState(task.description || '');
+
+  // sync local state when task changes
+  useEffect(() => {
+    setLocalSteps(task.steps || []);
+    setLocalDescription(task.description || '');
+  }, [task.steps, task.description]);
+
+  // close modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -20,41 +36,134 @@ export function TaskModal({ task, onClose, onToggleStep }: TaskModalProps) {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
+  const cyclePriority = () => {
+    if (!onUpdateTask) return;
+    const currentIndex = PRIORITY_CYCLE.indexOf(task.priority as Priority);
+    const nextIndex = (currentIndex + 1) % PRIORITY_CYCLE.length;
+    onUpdateTask(task.id, { priority: PRIORITY_CYCLE[nextIndex] });
+  };
+
+  const cycleWorkload = () => {
+    if (!onUpdateTask) return;
+    const currentIndex = WORKLOAD_CYCLE.indexOf(task.workload as Workload);
+    const nextIndex = (currentIndex + 1) % WORKLOAD_CYCLE.length;
+    onUpdateTask(task.id, { workload: WORKLOAD_CYCLE[nextIndex] });
+  };
+
+  const handleAddStep = () => {
+    if (!onUpdateTask) return;
+    const newSteps = [...(task.steps || []), { text: '', completed: false }];
+    onUpdateTask(task.id, { steps: newSteps });
+  };
+
+  const handleRemoveStep = (index: number) => {
+    if (!onUpdateTask) return;
+    const newSteps = (task.steps || []).filter((_, i) => i !== index);
+    onUpdateTask(task.id, { steps: newSteps });
+  };
+
+  const handleStepTextChange = (index: number, text: string) => {
+    const newSteps = [...localSteps];
+    newSteps[index] = { ...newSteps[index], text };
+    setLocalSteps(newSteps);
+  };
+
+  const handleStepTextBlur = (index: number) => {
+    if (!onUpdateTask) return;
+    const newSteps = [...(task.steps || [])];
+    newSteps[index] = { ...newSteps[index], text: localSteps[index].text };
+    onUpdateTask(task.id, { steps: newSteps });
+  };
+
+  const handleDescriptionBlur = () => {
+    if (!onUpdateTask) return;
+    if (localDescription !== task.description) {
+      onUpdateTask(task.id, { description: localDescription });
+    }
+  };
+
+  const handleDueDateChange = (date: string) => {
+    if (!onUpdateTask) return;
+    onUpdateTask(task.id, { dueDate: date || undefined });
+  };
+
+  // helper to stop event propagation (prevents dnd-kit from capturing events)
+  const stopProp = {
+    onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+    onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+  };
+
   const getPriorityBadge = (priority?: string) => {
-    const colors = {
-      high: 'bg-vscode-error text-vscode-badge-fg',
-      medium: 'bg-vscode-warning text-vscode-badge-fg',
-      low: 'bg-vscode-success text-vscode-badge-fg',
+    const styles = {
+      high: 'border border-vscode-error text-vscode-error',
+      medium: 'border border-vscode-warning text-vscode-warning',
+      low: 'border border-vscode-success text-vscode-success',
     };
-    const icons = {
-      high: '🔴',
-      medium: '🟡',
-      low: '🟢',
+    const labels = {
+      high: '↑ High',
+      medium: '→ Medium',
+      low: '↓ Low',
     };
 
-    if (!priority) return null;
+    if (!priority) {
+      return (
+        <button
+          onClick={cyclePriority}
+          {...stopProp}
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-dashed border-vscode-input-border text-vscode-foreground opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+          aria-label="Set priority"
+        >
+          + Priority
+        </button>
+      );
+    }
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${colors[priority as keyof typeof colors]}`}>
-        {icons[priority as keyof typeof icons]} {priority.toUpperCase()}
-      </span>
+      <button
+        onClick={cyclePriority}
+        {...stopProp}
+        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded cursor-pointer hover:opacity-80 transition-opacity ${styles[priority as keyof typeof styles]}`}
+      >
+        {labels[priority as keyof typeof labels]}
+      </button>
     );
   };
 
   const getWorkloadBadge = (workload?: string) => {
-    const icons = {
-      Easy: '🟢',
-      Normal: '🟡',
-      Hard: '🔴',
-      Extreme: '🔴🔴',
+    const styles = {
+      Easy: 'border border-vscode-success text-vscode-success',
+      Normal: 'border border-vscode-warning text-vscode-warning',
+      Hard: 'border border-vscode-error text-vscode-error',
+      Extreme: 'border-2 border-vscode-error text-vscode-error font-bold',
+    };
+    const labels = {
+      Easy: '◇ Easy',
+      Normal: '◈ Normal',
+      Hard: '◆ Hard',
+      Extreme: '◆◆ Extreme',
     };
 
-    if (!workload) return null;
+    if (!workload) {
+      return (
+        <button
+          onClick={cycleWorkload}
+          {...stopProp}
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-dashed border-vscode-input-border text-vscode-foreground opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+          aria-label="Set workload"
+        >
+          + Workload
+        </button>
+      );
+    }
 
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-vscode-badge-bg text-vscode-badge-fg">
-        {icons[workload as keyof typeof icons]} {workload}
-      </span>
+      <button
+        onClick={cycleWorkload}
+        {...stopProp}
+        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded cursor-pointer hover:opacity-80 transition-opacity ${styles[workload as keyof typeof styles]}`}
+      >
+        {labels[workload as keyof typeof labels]}
+      </button>
     );
   };
 
@@ -62,14 +171,28 @@ export function TaskModal({ task, onClose, onToggleStep }: TaskModalProps) {
   const totalSteps = task.steps?.length || 0;
   const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
 
+  // stop all pointer events from propagating to parent (prevents dnd-kit interference)
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose();
+  };
+
+  const handleContentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
+      onClick={handleBackdropClick}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
     >
       <div
         className="bg-vscode-background border border-vscode-input-border rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        onClick={handleContentClick}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-vscode-input-border">
@@ -79,6 +202,7 @@ export function TaskModal({ task, onClose, onToggleStep }: TaskModalProps) {
             </h2>
             <button
               onClick={onClose}
+              {...stopProp}
               className="text-vscode-foreground hover:text-vscode-button-fg transition-colors text-2xl leading-none"
               aria-label="Close"
             >
@@ -90,11 +214,6 @@ export function TaskModal({ task, onClose, onToggleStep }: TaskModalProps) {
           <div className="flex flex-wrap gap-2 mt-3">
             {getPriorityBadge(task.priority)}
             {getWorkloadBadge(task.workload)}
-            {task.dueDate && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-vscode-badge-bg text-vscode-badge-fg">
-                📅 Due: {task.dueDate}
-              </span>
-            )}
           </div>
 
           {/* Tags */}
@@ -114,78 +233,115 @@ export function TaskModal({ task, onClose, onToggleStep }: TaskModalProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {/* Due Date */}
+          <div>
+            <h3 className="text-sm font-semibold text-vscode-foreground mb-2">
+              Due Date
+            </h3>
+            <input
+              type="date"
+              value={task.dueDate || ''}
+              onChange={(e) => handleDueDateChange(e.target.value)}
+              {...stopProp}
+              className="w-full px-3 py-2 text-sm bg-vscode-input-bg text-vscode-foreground border border-vscode-input-border rounded focus:outline-none focus:border-vscode-primary"
+            />
+          </div>
+
           {/* Description */}
-          {task.description && (
-            <div>
-              <h3 className="text-sm font-semibold text-vscode-foreground mb-2">
-                Description
-              </h3>
-              <div className="text-sm text-vscode-foreground whitespace-pre-wrap bg-vscode-input-bg p-3 rounded">
-                {task.description}
-              </div>
-            </div>
-          )}
+          <div>
+            <h3 className="text-sm font-semibold text-vscode-foreground mb-2">
+              Description
+            </h3>
+            <textarea
+              value={localDescription}
+              onChange={(e) => setLocalDescription(e.target.value)}
+              onBlur={handleDescriptionBlur}
+              {...stopProp}
+              placeholder="Add description..."
+              className="w-full px-3 py-2 text-sm bg-vscode-input-bg text-vscode-foreground border border-vscode-input-border rounded focus:outline-none focus:border-vscode-primary min-h-[100px] resize-y"
+            />
+          </div>
 
           {/* Steps */}
-          {task.steps && task.steps.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-vscode-foreground">
-                  Subtasks
-                </h3>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-vscode-foreground">
+                Subtasks
+              </h3>
+              {totalSteps > 0 && (
                 <span className="text-xs text-vscode-foreground">
                   {completedSteps}/{totalSteps} completed
                 </span>
-              </div>
+              )}
+            </div>
 
-              {/* Progress Bar */}
+            {/* Progress Bar */}
+            {totalSteps > 0 && (
               <div className="w-full bg-vscode-input-bg rounded-full h-2 mb-4">
                 <div
                   className="bg-vscode-primary h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
+            )}
 
-              {/* Steps List */}
-              <div className="space-y-2">
-                {task.steps.map((step, idx) => (
-                  <label
-                    key={idx}
-                    className="flex items-start gap-3 p-2 rounded hover:bg-vscode-list-hoverBg cursor-pointer transition-colors group"
+            {/* Steps List */}
+            <div className="space-y-2">
+              {localSteps.map((step, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-3 p-2 rounded hover:bg-vscode-list-hoverBg transition-colors group"
+                >
+                  <input
+                    type="checkbox"
+                    checked={step.completed}
+                    onChange={() => onToggleStep(idx)}
+                    {...stopProp}
+                    className="cursor-pointer w-4 h-4 flex-shrink-0"
+                  />
+                  <input
+                    type="text"
+                    value={step.text}
+                    onChange={(e) => handleStepTextChange(idx, e.target.value)}
+                    onBlur={() => handleStepTextBlur(idx)}
+                    {...stopProp}
+                    className={`flex-1 text-sm bg-transparent border-none focus:outline-none focus:bg-vscode-input-bg px-1 rounded ${
+                      step.completed
+                        ? 'line-through text-vscode-foreground opacity-60'
+                        : 'text-vscode-foreground'
+                    }`}
+                    placeholder="Step description..."
+                  />
+                  <button
+                    onClick={() => handleRemoveStep(idx)}
+                    {...stopProp}
+                    className="opacity-0 group-hover:opacity-100 text-vscode-error hover:text-vscode-error transition-opacity text-sm px-1"
+                    aria-label="Remove step"
                   >
-                    <input
-                      type="checkbox"
-                      checked={step.completed}
-                      onChange={() => onToggleStep(idx)}
-                      className="mt-1 cursor-pointer w-4 h-4"
-                    />
-                    <span
-                      className={`flex-1 text-sm ${
-                        step.completed
-                          ? 'line-through text-vscode-foreground opacity-60'
-                          : 'text-vscode-foreground'
-                      }`}
-                    >
-                      {step.text}
-                    </span>
-                  </label>
-                ))}
-              </div>
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
-          )}
 
-          {/* Empty State */}
-          {!task.description && (!task.steps || task.steps.length === 0) && (
-            <div className="text-center py-8 text-vscode-foreground opacity-60">
-              <p className="text-sm">No additional details for this task.</p>
-            </div>
-          )}
+            {/* Add Step Button */}
+            <button
+              onClick={handleAddStep}
+              {...stopProp}
+              className="mt-3 flex items-center gap-2 text-sm text-vscode-foreground opacity-60 hover:opacity-100 transition-opacity"
+              aria-label="Add step"
+            >
+              <span>+</span>
+              <span>Add step</span>
+            </button>
+          </div>
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-vscode-input-border flex justify-end gap-2">
           <button
             onClick={onClose}
+            {...stopProp}
             className="px-4 py-2 text-sm font-medium rounded bg-vscode-button-bg text-vscode-button-fg hover:bg-vscode-button-hoverBg transition-colors"
           >
             Close

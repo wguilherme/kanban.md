@@ -1,15 +1,13 @@
-import { useKanbanBoard } from './hooks/useKanbanBoard';
+import { useIsLoading, useBoard } from './stores/kanbanStore';
+import { useStoreSetup } from './hooks/useStoreSetup';
 import { KanbanBoard } from './components/KanbanBoard';
 
 function App() {
-  const {
-    board,
-    isLoading,
-    setIsDragging,
-    moveTask,
-    reorderTask,
-    updateTask,
-  } = useKanbanBoard();
+  // setup store and message listener
+  useStoreSetup();
+
+  const isLoading = useIsLoading();
+  const board = useBoard();
 
   if (isLoading || !board) {
     return (
@@ -21,15 +19,7 @@ function App() {
     );
   }
 
-  return (
-    <KanbanBoard
-      board={board}
-      onMoveTask={moveTask}
-      onReorderTask={reorderTask}
-      onUpdateTask={updateTask}
-      onDragStateChange={setIsDragging}
-    />
-  );
+  return <KanbanBoard />;
 }
 
 export default App;

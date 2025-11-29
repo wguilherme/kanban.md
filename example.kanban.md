@@ -96,9 +96,9 @@
 
 ### ✅ Modern Structured Format
 
-### Todas propriedades com indentação `  - property: value`
+### Todas propriedades com indentação `- property: value`
 
-### Steps com indentação `      - [ ] step`
+### Steps com indentação `- [ ] step`
 
 ### Code block description dentro do formato
 

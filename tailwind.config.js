@@ -34,7 +34,7 @@ export default {
         'vscode-primary': 'var(--vscode-activityBarBadge-background)',
         'vscode-success': 'var(--vscode-testing-iconPassed)',
         'vscode-error': 'var(--vscode-testing-iconFailed)',
-        'vscode-warning': 'var(--vscode-notificationsWarningIcon-foreground)',
+        'vscode-warning': 'var(--vscode-editorWarning-foreground, #cca700)',
         'vscode-info': 'var(--vscode-notificationsInfoIcon-foreground)',
       },
     },

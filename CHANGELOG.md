@@ -5,6 +5,54 @@ All notable changes to the "Kanban.md" extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.1.3] - 2025-11-29
+
+### UX Improvements
+
+- **Priority indicator redesign**: Cards now display priority as a colored left border (Trello-style)
+  - High priority: red border
+  - Medium priority: yellow border
+  - Low priority: green border
+
+- **Task modal badges**: Priority and workload now display as outline badges with icons
+  - Priority uses arrow icons (↑ High, → Medium, ↓ Low)
+  - Workload uses diamond icons (◇ Easy, ◈ Normal, ◆ Hard, ◆◆ Extreme)
+  - Badges have colored borders instead of solid backgrounds for better readability
+
+- **Editable task modal**: Task details can now be edited directly from the modal
+  - **Clickable badges**: Priority and workload cycle through values when clicked
+  - **Editable steps**: Add, remove, and edit subtask text inline
+  - **Editable description**: Description textarea with save-on-blur
+  - **Editable due date**: Date picker input for due dates
+
+- **Fixed warning color**: Medium priority now correctly displays yellow instead of blue
+
+### Bug Fixes
+
+- **Modal closing fix**: Fixed modal unexpectedly closing when editing task details
+  - Implemented Zustand store for centralized state management
+  - Added deferred save pattern - changes are now saved when modal closes
+  - Unsaved changes indicator (●) shown in modal header
+
+- **Tags merging fix**: Inline hashtag tags now correctly merge with array-format tags instead of being overwritten
+
+### Sidebar
+
+- **Edit markdown button**: Added pencil icon to sidebar items to open the raw markdown file directly
+- **Removed redundant preview icon**: Clicking on file name already opens the Kanban view
+
+### Developer Experience
+
+- **Fixed build tasks**: F5 now runs full build before starting watchers
+- **Fixed task scripts**: Corrected watch task references in `.vscode/tasks.json`
+- **Zustand architecture**: Migrated state management to Zustand store with selectors
+
+### Documentation
+
+- Added `CLAUDE.md` with project architecture documentation
+
 ## [0.1.1] - 2025-11-25
 
 ### Bug Fixes

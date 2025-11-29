@@ -12,57 +12,36 @@ import {
   DragOverEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
-import type { KanbanBoard as KanbanBoardType, KanbanTask, KanbanColumn } from '../../types/kanban';
+import type { KanbanTask, KanbanColumn } from '../../types/kanban';
 import { Column } from './Column';
 import { TaskCard } from './TaskCard';
+import { TaskModalContainer } from '../TaskModalContainer';
+import {
+  useKanbanStore,
+  useDisplayColumns,
+  useBoard,
+} from '../../stores/kanbanStore';
 
-/**
- * Creates a fingerprint of the columns structure for content comparison.
- * This avoids unnecessary state updates when props change but content is identical.
- */
-function getColumnsFingerprint(columns: KanbanColumn[]): string {
-  return columns
-    .map(col => `${col.id}:[${col.tasks.map(t => t.id).join(',')}]`)
-    .join('|');
-}
-
-interface KanbanBoardProps {
-  board: KanbanBoardType;
-  onMoveTask: (taskId: string, fromColumnId: string, toColumnId: string, newIndex: number) => void;
-  onReorderTask: (columnId: string, oldIndex: number, newIndex: number) => void;
-  onUpdateTask: (taskId: string, updates: Partial<KanbanTask>) => void;
-  onDragStateChange: (isDragging: boolean) => void;
-}
-
-export function KanbanBoard({
-  board,
-  onMoveTask,
-  onReorderTask,
-  onUpdateTask,
-  onDragStateChange,
-}: KanbanBoardProps) {
+export function KanbanBoard() {
+  const board = useBoard();
+  const columns = useDisplayColumns();
   const [activeTask, setActiveTask] = useState<KanbanTask | null>(null);
 
-  // Local columns state for optimistic updates during drag
-  // This allows the UI to show real-time preview of where items will land
-  const [columns, setColumns] = useState<KanbanColumn[]>(board.columns);
+  // store actions
+  const startDrag = useKanbanStore((s) => s.startDrag);
+  const updateDragPreview = useKanbanStore((s) => s.updateDragPreview);
+  const endDrag = useKanbanStore((s) => s.endDrag);
+  const cancelDrag = useKanbanStore((s) => s.cancelDrag);
+  const moveTask = useKanbanStore((s) => s.moveTask);
+  const reorderTask = useKanbanStore((s) => s.reorderTask);
+  const updateTask = useKanbanStore((s) => s.updateTask);
 
-  // Track the original position before drag started (for calling callbacks on drop)
+  // track original position before drag
   const dragStartState = useRef<{
     taskId: string;
     sourceColumnId: string;
     sourceIndex: number;
   } | null>(null);
-
-  // Sync local state with props when board changes (but not during drag)
-  // IMPORTANT: Compare by content (fingerprint), not by reference, to avoid
-  // unnecessary re-renders when props update but data is identical
-  const isDraggingRef = useRef(false);
-  const boardFingerprint = getColumnsFingerprint(board.columns);
-  const localFingerprint = getColumnsFingerprint(columns);
-  if (!isDraggingRef.current && boardFingerprint !== localFingerprint) {
-    setColumns(board.columns);
-  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -91,25 +70,20 @@ export function KanbanBoard({
     const { active } = event;
     const taskId = active.id as string;
 
-    setColumns(currentColumns => {
-      const task = findTask(taskId, currentColumns);
-      const sourceColumn = findColumnByTaskId(taskId, currentColumns);
+    const currentColumns = useKanbanStore.getState().board?.columns || [];
+    const task = findTask(taskId, currentColumns);
+    const sourceColumn = findColumnByTaskId(taskId, currentColumns);
 
-      if (task && sourceColumn) {
-        setActiveTask(task);
-        dragStartState.current = {
-          taskId,
-          sourceColumnId: sourceColumn.id,
-          sourceIndex: sourceColumn.tasks.findIndex(t => t.id === taskId),
-        };
-      }
-
-      return currentColumns;
-    });
-
-    isDraggingRef.current = true;
-    onDragStateChange(true);
-  }, [findTask, findColumnByTaskId, onDragStateChange]);
+    if (task && sourceColumn) {
+      setActiveTask(task);
+      dragStartState.current = {
+        taskId,
+        sourceColumnId: sourceColumn.id,
+        sourceIndex: sourceColumn.tasks.findIndex(t => t.id === taskId),
+      };
+      startDrag(taskId);
+    }
+  }, [findTask, findColumnByTaskId, startDrag]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event;
@@ -119,125 +93,122 @@ export function KanbanBoard({
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    setColumns(currentColumns => {
-      const activeColumn = findColumnByTaskId(activeId, currentColumns);
+    const currentColumns = useKanbanStore.getState().dragPreview || [];
+    const activeColumn = findColumnByTaskId(activeId, currentColumns);
 
-      // Determine if over a column or a task
-      const overColumn = currentColumns.find(c => c.id === overId) ||
-        findColumnByTaskId(overId, currentColumns);
+    // determine if over a column or a task
+    const overColumn = currentColumns.find(c => c.id === overId) ||
+      findColumnByTaskId(overId, currentColumns);
 
-      if (!activeColumn || !overColumn) return currentColumns;
+    if (!activeColumn || !overColumn) return;
 
-      // If in the same column, let sortable handle reordering
-      if (activeColumn.id === overColumn.id) {
-        const oldIndex = activeColumn.tasks.findIndex(t => t.id === activeId);
-        const newIndex = activeColumn.tasks.findIndex(t => t.id === overId);
+    // if in the same column, handle reordering
+    if (activeColumn.id === overColumn.id) {
+      const oldIndex = activeColumn.tasks.findIndex(t => t.id === activeId);
+      const newIndex = activeColumn.tasks.findIndex(t => t.id === overId);
 
-        if (oldIndex !== newIndex && newIndex !== -1) {
-          return currentColumns.map(col => {
-            if (col.id === activeColumn.id) {
-              return {
-                ...col,
-                tasks: arrayMove(col.tasks, oldIndex, newIndex),
-              };
-            }
-            return col;
-          });
-        }
-        return currentColumns;
+      if (oldIndex !== newIndex && newIndex !== -1) {
+        const newColumns = currentColumns.map(col => {
+          if (col.id === activeColumn.id) {
+            return {
+              ...col,
+              tasks: arrayMove(col.tasks, oldIndex, newIndex),
+            };
+          }
+          return col;
+        });
+        updateDragPreview(newColumns);
       }
+      return;
+    }
 
-      // Moving to a different column - this is the key for cross-column preview!
-      const activeIndex = activeColumn.tasks.findIndex(t => t.id === activeId);
-      const task = activeColumn.tasks[activeIndex];
+    // moving to a different column
+    const activeIndex = activeColumn.tasks.findIndex(t => t.id === activeId);
+    const task = activeColumn.tasks[activeIndex];
 
-      if (!task) return currentColumns;
+    if (!task) return;
 
-      // Calculate target index
-      let targetIndex: number;
-      if (overId === overColumn.id) {
-        // Dropped on column itself - add to end
-        targetIndex = overColumn.tasks.length;
-      } else {
-        // Dropped on a task - insert at that position
-        targetIndex = overColumn.tasks.findIndex(t => t.id === overId);
-        if (targetIndex === -1) targetIndex = overColumn.tasks.length;
+    // calculate target index
+    let targetIndex: number;
+    if (overId === overColumn.id) {
+      targetIndex = overColumn.tasks.length;
+    } else {
+      targetIndex = overColumn.tasks.findIndex(t => t.id === overId);
+      if (targetIndex === -1) targetIndex = overColumn.tasks.length;
+    }
+
+    // move task between columns in preview
+    const newColumns = currentColumns.map(col => {
+      if (col.id === activeColumn.id) {
+        return {
+          ...col,
+          tasks: col.tasks.filter(t => t.id !== activeId),
+        };
       }
-
-      // Move task between columns
-      return currentColumns.map(col => {
-        if (col.id === activeColumn.id) {
-          return {
-            ...col,
-            tasks: col.tasks.filter(t => t.id !== activeId),
-          };
-        }
-        if (col.id === overColumn.id) {
-          const newTasks = [...col.tasks];
-          newTasks.splice(targetIndex, 0, task);
-          return {
-            ...col,
-            tasks: newTasks,
-          };
-        }
-        return col;
-      });
+      if (col.id === overColumn.id) {
+        const newTasks = [...col.tasks];
+        newTasks.splice(targetIndex, 0, task);
+        return {
+          ...col,
+          tasks: newTasks,
+        };
+      }
+      return col;
     });
-  }, [findColumnByTaskId]);
+    updateDragPreview(newColumns);
+  }, [findColumnByTaskId, updateDragPreview]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     const startState = dragStartState.current;
 
     setActiveTask(null);
-    isDraggingRef.current = false;
     dragStartState.current = null;
 
-    // Delay the drag state change to prevent backend update flash
-    setTimeout(() => onDragStateChange(false), 200);
-
-    if (!over || !startState) return;
+    if (!over || !startState) {
+      endDrag();
+      return;
+    }
 
     const activeTaskId = active.id as string;
+    const currentColumns = useKanbanStore.getState().dragPreview || [];
+    const targetColumn = findColumnByTaskId(activeTaskId, currentColumns);
 
-    // Get the final position from local columns state
-    setColumns(currentColumns => {
-      const targetColumn = findColumnByTaskId(activeTaskId, currentColumns);
-      if (!targetColumn) return currentColumns;
+    if (!targetColumn) {
+      endDrag();
+      return;
+    }
 
-      const targetIndex = targetColumn.tasks.findIndex(t => t.id === activeTaskId);
+    const targetIndex = targetColumn.tasks.findIndex(t => t.id === activeTaskId);
 
-      // Check if position actually changed
-      const sameColumn = startState.sourceColumnId === targetColumn.id;
-      const sameIndex = startState.sourceIndex === targetIndex;
+    // check if position actually changed
+    const sameColumn = startState.sourceColumnId === targetColumn.id;
+    const sameIndex = startState.sourceIndex === targetIndex;
 
-      if (sameColumn && sameIndex) {
-        // No change, nothing to persist
-        return currentColumns;
-      }
+    // end drag first to clear isDragging flag
+    endDrag();
 
-      if (sameColumn) {
-        // Reordered within same column
-        onReorderTask(targetColumn.id, startState.sourceIndex, targetIndex);
-      } else {
-        // Moved to different column
-        onMoveTask(activeTaskId, startState.sourceColumnId, targetColumn.id, targetIndex);
-      }
+    if (sameColumn && sameIndex) {
+      // no change, nothing to persist
+      return;
+    }
 
-      return currentColumns;
-    });
-  }, [findColumnByTaskId, onMoveTask, onReorderTask, onDragStateChange]);
+    if (sameColumn) {
+      // reordered within same column
+      reorderTask(targetColumn.id, startState.sourceIndex, targetIndex);
+    } else {
+      // moved to different column
+      moveTask(activeTaskId, startState.sourceColumnId, targetColumn.id, targetIndex);
+    }
+  }, [findColumnByTaskId, moveTask, reorderTask, endDrag]);
 
   const handleDragCancel = useCallback(() => {
     setActiveTask(null);
-    isDraggingRef.current = false;
     dragStartState.current = null;
+    cancelDrag();
+  }, [cancelDrag]);
 
-    // Reset columns to board state on cancel
-    setColumns(board.columns);
-
-    setTimeout(() => onDragStateChange(false), 200);
-  }, [board.columns, onDragStateChange]);
+  if (!board) return null;
 
   return (
     <DndContext
@@ -259,7 +230,7 @@ export function KanbanBoard({
               <Column
                 key={column.id}
                 column={column}
-                onUpdateTask={onUpdateTask}
+                onUpdateTask={updateTask}
               />
             ))}
           </div>
@@ -274,6 +245,9 @@ export function KanbanBoard({
           <TaskCard task={activeTask} isOverlay />
         ) : null}
       </DragOverlay>
+
+      {/* Task Modal - rendered outside DndContext to prevent interference */}
+      <TaskModalContainer />
     </DndContext>
   );
 }

@@ -3,7 +3,7 @@
   "displayName": "Kanban.md",
   "description": "Transform your Markdown files into powerful, interactive Kanban boards",
   "publisher": "wguilherme",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "engines": {
     "vscode": "^1.106.0"
   },
@@ -76,6 +76,12 @@
         "title": "New Kanban Board",
         "icon": "$(add)",
         "category": "Markdown Kanban"
+      },
+      {
+        "command": "markdown-kanban.editMarkdown",
+        "title": "Edit Markdown",
+        "icon": "$(edit)",
+        "category": "Markdown Kanban"
       }
     ],
     "menus": {
@@ -93,7 +99,7 @@
       ],
       "view/item/context": [
         {
-          "command": "markdown-kanban.openFromSidebar",
+          "command": "markdown-kanban.editMarkdown",
           "when": "view == markdown-kanban.boards && viewItem == kanbanFile",
           "group": "inline"
         }
@@ -174,6 +180,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zustand": "^5.0.8"
   }
 }

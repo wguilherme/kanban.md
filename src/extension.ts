@@ -91,6 +91,14 @@ export function activate(context: vscode.ExtensionContext) {
 		KanbanWebviewPanel.createOrShow(context.extensionUri, context, document);
 	});
 
+	// Register command to edit markdown file directly
+	const editMarkdownCommand = vscode.commands.registerCommand('markdown-kanban.editMarkdown', async (item: any) => {
+		// item can be KanbanTreeItem (from context menu) or Uri (from other sources)
+		const uri = item.resourceUri || item;
+		const document = await vscode.workspace.openTextDocument(uri);
+		await vscode.window.showTextDocument(document);
+	});
+
 	// Register command to create new kanban board
 	const newKanbanCommand = vscode.commands.registerCommand('markdown-kanban.newKanban', async () => {
 		// Get workspace folder
@@ -198,6 +206,7 @@ export function activate(context: vscode.ExtensionContext) {
 		disableFileListenerCommand,
 		refreshCommand,
 		openFromSidebarCommand,
+		editMarkdownCommand,
 		newKanbanCommand,
 		documentChangeListener,
 		activeEditorChangeListener,
