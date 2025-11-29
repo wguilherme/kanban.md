@@ -21,39 +21,45 @@ export function TaskModal({ task, onClose, onToggleStep }: TaskModalProps) {
   }, [onClose]);
 
   const getPriorityBadge = (priority?: string) => {
-    const colors = {
-      high: 'bg-vscode-error text-vscode-badge-fg',
-      medium: 'bg-vscode-warning text-vscode-badge-fg',
-      low: 'bg-vscode-success text-vscode-badge-fg',
+    const styles = {
+      high: 'border border-vscode-error text-vscode-error',
+      medium: 'border border-vscode-warning text-vscode-warning',
+      low: 'border border-vscode-success text-vscode-success',
     };
-    const icons = {
-      high: '🔴',
-      medium: '🟡',
-      low: '🟢',
+    const labels = {
+      high: '↑ High',
+      medium: '→ Medium',
+      low: '↓ Low',
     };
 
     if (!priority) return null;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${colors[priority as keyof typeof colors]}`}>
-        {icons[priority as keyof typeof icons]} {priority.toUpperCase()}
+      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${styles[priority as keyof typeof styles]}`}>
+        {labels[priority as keyof typeof labels]}
       </span>
     );
   };
 
   const getWorkloadBadge = (workload?: string) => {
-    const icons = {
-      Easy: '🟢',
-      Normal: '🟡',
-      Hard: '🔴',
-      Extreme: '🔴🔴',
+    const styles = {
+      Easy: 'border border-vscode-success text-vscode-success',
+      Normal: 'border border-vscode-warning text-vscode-warning',
+      Hard: 'border border-vscode-error text-vscode-error',
+      Extreme: 'border-2 border-vscode-error text-vscode-error font-bold',
+    };
+    const labels = {
+      Easy: '◇ Easy',
+      Normal: '◈ Normal',
+      Hard: '◆ Hard',
+      Extreme: '◆◆ Extreme',
     };
 
     if (!workload) return null;
 
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-vscode-badge-bg text-vscode-badge-fg">
-        {icons[workload as keyof typeof icons]} {workload}
+      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${styles[workload as keyof typeof styles]}`}>
+        {labels[workload as keyof typeof labels]}
       </span>
     );
   };

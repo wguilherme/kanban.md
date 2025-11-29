@@ -7,27 +7,19 @@ interface TaskCardProps {
   isOverlay?: boolean;
 }
 
-function getPriorityIcon(priority?: string) {
+function getPriorityBorderClass(priority: string) {
   switch (priority) {
-    case 'high': return '🔴';
-    case 'medium': return '🟡';
-    case 'low': return '🟢';
-    default: return '';
-  }
-}
-
-function getWorkloadIcon(workload?: string) {
-  switch (workload) {
-    case 'Easy': return '🟢';
-    case 'Normal': return '🟡';
-    case 'Hard': return '🔴';
-    case 'Extreme': return '🔴🔴';
+    case 'high': return 'border-l-4 border-l-vscode-error';
+    case 'medium': return 'border-l-4 border-l-vscode-warning';
+    case 'low': return 'border-l-4 border-l-vscode-success';
     default: return '';
   }
 }
 
 function TaskCardComponent({ task, isDragging = false, isOverlay = false }: TaskCardProps) {
   const baseClasses = 'bg-vscode-background p-3 rounded border';
+
+  const priorityClasses = task.priority ? getPriorityBorderClass(task.priority) : '';
 
   const stateClasses = isOverlay
     ? 'border-vscode-button-bg shadow-lg opacity-95 scale-105'
@@ -36,18 +28,8 @@ function TaskCardComponent({ task, isDragging = false, isOverlay = false }: Task
     : 'border-vscode-input-border';
 
   return (
-    <div className={`${baseClasses} ${stateClasses}`}>
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-medium text-vscode-foreground flex-1">{task.title}</h3>
-        <div className="flex items-center gap-2">
-          {task.priority && (
-            <span className="text-sm">{getPriorityIcon(task.priority)}</span>
-          )}
-          {task.workload && (
-            <span className="text-sm">{getWorkloadIcon(task.workload)}</span>
-          )}
-        </div>
-      </div>
+    <div className={`${baseClasses} ${stateClasses} ${priorityClasses}`}>
+      <h3 className="font-medium text-vscode-foreground">{task.title}</h3>
 
       {task.tags && task.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
