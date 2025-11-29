@@ -91,13 +91,7 @@
           "group": "navigation@2"
         }
       ],
-      "view/item/context": [
-        {
-          "command": "markdown-kanban.openFromSidebar",
-          "when": "view == markdown-kanban.boards && viewItem == kanbanFile",
-          "group": "inline"
-        }
-      ],
+      "view/item/context": [],
       "editor/title": [
         {
           "command": "markdown-kanban.openKanban",
