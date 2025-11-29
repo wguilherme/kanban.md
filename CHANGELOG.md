@@ -25,6 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Tags merging fix**: Inline hashtag tags now correctly merge with array-format tags instead of being overwritten
 
+### Sidebar
+
+- **Edit markdown button**: Added pencil icon to sidebar items to open the raw markdown file directly
+- **Removed redundant preview icon**: Clicking on file name already opens the Kanban view
+
+### Developer Experience
+
+- **Fixed build tasks**: F5 now runs full build before starting watchers
+- **Fixed task scripts**: Corrected watch task references in `.vscode/tasks.json`
+
 ### Documentation
 
 - Added `CLAUDE.md` with project architecture documentation

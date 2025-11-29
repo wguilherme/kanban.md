@@ -76,6 +76,12 @@
         "title": "New Kanban Board",
         "icon": "$(add)",
         "category": "Markdown Kanban"
+      },
+      {
+        "command": "markdown-kanban.editMarkdown",
+        "title": "Edit Markdown",
+        "icon": "$(edit)",
+        "category": "Markdown Kanban"
       }
     ],
     "menus": {
@@ -91,7 +97,13 @@
           "group": "navigation@2"
         }
       ],
-      "view/item/context": [],
+      "view/item/context": [
+        {
+          "command": "markdown-kanban.editMarkdown",
+          "when": "view == markdown-kanban.boards && viewItem == kanbanFile",
+          "group": "inline"
+        }
+      ],
       "editor/title": [
         {
           "command": "markdown-kanban.openKanban",
