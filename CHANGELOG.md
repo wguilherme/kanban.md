@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2025-11-29
+
 ### UX Improvements
 
 - **Priority indicator redesign**: Cards now display priority as a colored left border (Trello-style)
@@ -29,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+- **Modal closing fix**: Fixed modal unexpectedly closing when editing task details
+  - Implemented Zustand store for centralized state management
+  - Added deferred save pattern - changes are now saved when modal closes
+  - Unsaved changes indicator (●) shown in modal header
+
 - **Tags merging fix**: Inline hashtag tags now correctly merge with array-format tags instead of being overwritten
 
 ### Sidebar
@@ -40,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Fixed build tasks**: F5 now runs full build before starting watchers
 - **Fixed task scripts**: Corrected watch task references in `.vscode/tasks.json`
+- **Zustand architecture**: Migrated state management to Zustand store with selectors
 
 ### Documentation
 

@@ -3,7 +3,7 @@
   "displayName": "Kanban.md",
   "description": "Transform your Markdown files into powerful, interactive Kanban boards",
   "publisher": "wguilherme",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "engines": {
     "vscode": "^1.106.0"
   },
