@@ -7,7 +7,7 @@ ifneq (,$(wildcard .env))
     export
 endif
 
-.PHONY: build check clean install publish publish-patch publish-minor publish-major
+.PHONY: build check clean install publish publish-patch publish-minor publish-major tag
 
 build:
 	@echo "Building extension and webview..."
@@ -51,3 +51,12 @@ publish-major:
 	@echo "Publishing major version..."
 	vsce publish major -p $(VSCE_TOKEN)
 	@echo "Published successfully!"
+
+tag:
+ifndef TAG_VERSION
+	$(error TAG_VERSION is required. Usage: make tag TAG_VERSION=v0.1.3)
+endif
+	@echo "Creating and pushing tag $(TAG_VERSION)..."
+	git tag -a $(TAG_VERSION) -m "Release $(TAG_VERSION)"
+	git push origin $(TAG_VERSION)
+	@echo "Tag $(TAG_VERSION) created and pushed successfully!"
