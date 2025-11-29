@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Workload uses diamond icons (◇ Easy, ◈ Normal, ◆ Hard, ◆◆ Extreme)
   - Badges have colored borders instead of solid backgrounds for better readability
 
+- **Editable task modal**: Task details can now be edited directly from the modal
+  - **Clickable badges**: Priority and workload cycle through values when clicked
+  - **Editable steps**: Add, remove, and edit subtask text inline
+  - **Editable description**: Description textarea with save-on-blur
+  - **Editable due date**: Date picker input for due dates
+
 - **Fixed warning color**: Medium priority now correctly displays yellow instead of blue
 
 ### Bug Fixes

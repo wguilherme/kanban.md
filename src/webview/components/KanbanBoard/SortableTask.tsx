@@ -1,9 +1,9 @@
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { KanbanTask } from '../../types/kanban';
 import { TaskCard } from './TaskCard';
-import { TaskModal } from '../TaskModal';
+import { useKanbanStore } from '../../stores/kanbanStore';
 
 interface SortableTaskProps {
   task: KanbanTask;
@@ -11,7 +11,7 @@ interface SortableTaskProps {
 }
 
 function SortableTaskComponent({ task, onUpdateTask }: SortableTaskProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const openModal = useKanbanStore((s) => s.openModal);
 
   const {
     attributes,
@@ -34,41 +34,23 @@ function SortableTaskComponent({ task, onUpdateTask }: SortableTaskProps) {
     zIndex: isDragging ? 1 : 0,
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    // Don't open modal if dragging
+  const handleClick = () => {
+    // don't open modal if dragging
     if (isDragging) return;
-    setIsModalOpen(true);
-  };
-
-  const handleToggleStep = (stepIndex: number) => {
-    if (!task.steps) return;
-    const updatedSteps = task.steps.map((step, idx) =>
-      idx === stepIndex ? { ...step, completed: !step.completed } : step
-    );
-    onUpdateTask(task.id, { steps: updatedSteps });
+    openModal(task.id);
   };
 
   return (
-    <>
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
-        onClick={handleClick}
-        className="cursor-grab active:cursor-grabbing"
-      >
-        <TaskCard task={task} isDragging={isDragging} />
-      </div>
-
-      {isModalOpen && (
-        <TaskModal
-          task={task}
-          onClose={() => setIsModalOpen(false)}
-          onToggleStep={handleToggleStep}
-        />
-      )}
-    </>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={handleClick}
+      className="cursor-grab active:cursor-grabbing"
+    >
+      <TaskCard task={task} isDragging={isDragging} />
+    </div>
   );
 }
 
