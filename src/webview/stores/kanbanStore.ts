@@ -236,10 +236,22 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
   openModal: (taskId) => {
     set({ openTaskId: taskId });
+    // notify extension that modal is open
+    try {
+      getVSCodeAPI().postMessage({ type: 'modalStateChange', isOpen: true });
+    } catch {
+      // ignore in test environment
+    }
   },
 
   closeModal: () => {
     set({ openTaskId: null });
+    // notify extension that modal is closed - triggers deferred save
+    try {
+      getVSCodeAPI().postMessage({ type: 'modalStateChange', isOpen: false });
+    } catch {
+      // ignore in test environment
+    }
   },
 }));
 
