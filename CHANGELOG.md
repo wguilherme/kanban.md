@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-01-02
+
+### Features
+
+- **Add card button**: New "+ Add card" button in column footer to create tasks directly from the UI
+  - Appears on hover with full visibility, subtle when not hovered
+  - Opens task modal in create mode
+
+### Bug Fixes
+
+- **VSCode formatter compatibility**: Parser now handles markdown formatted by VSCode/Prettier
+  - Properties without indentation are now correctly parsed
+  - Steps with 2-space indentation are now correctly parsed
+  - Generator outputs formatter-compatible format to prevent formatting from breaking the board
+
+- **File detection scope**: Extension now only detects `.kanban.md` files
+  - "Open as Kanban" button only appears for `.kanban.md` files
+  - Extension no longer reacts to changes in regular `.md` files
+  - Sidebar already correctly filtered, now the editor title bar matches
+
 ## [0.1.3] - 2025-11-29
 
 ### UX Improvements
