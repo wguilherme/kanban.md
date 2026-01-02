@@ -41,6 +41,7 @@ describe('kanbanStore', () => {
       isDragging: false,
       dragPreview: null,
       openTaskId: null,
+      newTaskColumnId: null,
     });
   });
 
@@ -285,6 +286,80 @@ describe('kanbanStore', () => {
       const state = useKanbanStore.getState();
       expect(state.board?.columns[0].tasks[0].id).toBe('task-2');
       expect(state.board?.columns[0].tasks[1].id).toBe('task-1');
+    });
+  });
+
+  describe('addTask', () => {
+    it('adds new task to specified column', () => {
+      const board = createMockBoard();
+      useKanbanStore.getState().setBoard(board);
+
+      useKanbanStore.getState().addTask('col-1', { title: 'New Task' });
+
+      const state = useKanbanStore.getState();
+      expect(state.board?.columns[0].tasks.length).toBe(3);
+      expect(state.board?.columns[0].tasks[2].title).toBe('New Task');
+    });
+
+    it('generates unique id for new task', () => {
+      const board = createMockBoard();
+      useKanbanStore.getState().setBoard(board);
+
+      useKanbanStore.getState().addTask('col-1', { title: 'New Task' });
+
+      const state = useKanbanStore.getState();
+      const newTask = state.board?.columns[0].tasks[2];
+      expect(newTask?.id).toBeDefined();
+      expect(newTask?.id).not.toBe('task-1');
+      expect(newTask?.id).not.toBe('task-2');
+    });
+
+    it('adds task with all provided properties', () => {
+      const board = createMockBoard();
+      useKanbanStore.getState().setBoard(board);
+
+      useKanbanStore.getState().addTask('col-1', {
+        title: 'New Task',
+        priority: 'high',
+        workload: 'Hard',
+        description: 'Test description',
+      });
+
+      const state = useKanbanStore.getState();
+      const newTask = state.board?.columns[0].tasks[2];
+      expect(newTask?.title).toBe('New Task');
+      expect(newTask?.priority).toBe('high');
+      expect(newTask?.workload).toBe('Hard');
+      expect(newTask?.description).toBe('Test description');
+    });
+
+    it('does nothing if column not found', () => {
+      const board = createMockBoard();
+      useKanbanStore.getState().setBoard(board);
+
+      useKanbanStore.getState().addTask('non-existent', { title: 'New Task' });
+
+      const state = useKanbanStore.getState();
+      expect(state.board?.columns[0].tasks.length).toBe(2);
+      expect(state.board?.columns[1].tasks.length).toBe(1);
+    });
+  });
+
+  describe('openModalForNewTask', () => {
+    it('sets newTaskColumnId and opens modal with null taskId', () => {
+      useKanbanStore.getState().openModalForNewTask('col-1');
+
+      const state = useKanbanStore.getState();
+      expect(state.newTaskColumnId).toBe('col-1');
+      expect(state.openTaskId).toBeNull();
+    });
+
+    it('closeModal clears newTaskColumnId', () => {
+      useKanbanStore.getState().openModalForNewTask('col-1');
+      useKanbanStore.getState().closeModal();
+
+      const state = useKanbanStore.getState();
+      expect(state.newTaskColumnId).toBeNull();
     });
   });
 

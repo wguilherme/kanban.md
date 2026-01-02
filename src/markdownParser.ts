@@ -187,10 +187,13 @@ export class MarkdownKanbanParser {
   }
 
   private static isTaskTitle(line: string, trimmedLine: string): boolean {
-    // Exclude property lines and step items
-    if (line.startsWith('- ') &&
-        (trimmedLine.match(/^\s*- (due|tags|priority|workload|steps|defaultExpanded):/) ||
-         line.match(/^\s{6,}- \[([ x])\]/))) {
+    // Exclude property lines (any indented line with property pattern)
+    if (trimmedLine.match(/^- (due|tags|priority|workload|steps|defaultExpanded):/)) {
+      return false;
+    }
+
+    // Exclude step items (indented checkbox items)
+    if (line.match(/^\s+- \[([ x])\]/)) {
       return false;
     }
 
@@ -224,7 +227,8 @@ export class MarkdownKanbanParser {
   }
 
   private static parseTaskProperty(line: string, task: KanbanTask): boolean {
-    const propertyMatch = line.match(/^\s+- (due|tags|priority|workload|steps|defaultExpanded):\s*(.*)$/);
+    // flexible regex: accept any amount of leading whitespace (0+) to support formatted markdown
+    const propertyMatch = line.match(/^\s*- (due|tags|priority|workload|steps|defaultExpanded):\s*(.*)$/);
     if (!propertyMatch) return false;
 
     const [, propertyName, propertyValue] = propertyMatch;
@@ -266,14 +270,15 @@ export class MarkdownKanbanParser {
 
   private static parseTaskStep(line: string, task: KanbanTask): boolean {
     if (!task.steps) return false;
-    
-    const stepMatch = line.match(/^\s{6,}- \[([ x])\]\s*(.*)$/);
+
+    // flexible regex: accept any amount of leading whitespace (2+) to support formatted markdown
+    const stepMatch = line.match(/^\s{2,}- \[([ x])\]\s*(.*)$/);
     if (!stepMatch) return false;
 
     const [, checkmark, text] = stepMatch;
-    task.steps.push({ 
-      text: text.trim(), 
-      completed: checkmark === 'x' 
+    task.steps.push({
+      text: text.trim(),
+      completed: checkmark === 'x'
     });
     return true;
   }
@@ -330,26 +335,27 @@ export class MarkdownKanbanParser {
   private static generateTaskProperties(task: KanbanTask): string {
     let properties = '';
 
-    if (task.dueDate) {
-      properties += `  - due: ${task.dueDate}\n`;
-    }
+    // generate without indentation for formatter compatibility
     if (task.tags && task.tags.length > 0) {
-      properties += `  - tags: [${task.tags.join(', ')}]\n`;
+      properties += `- tags: [${task.tags.join(', ')}]\n`;
     }
     if (task.priority) {
-      properties += `  - priority: ${task.priority}\n`;
+      properties += `- priority: ${task.priority}\n`;
     }
     if (task.workload) {
-      properties += `  - workload: ${task.workload}\n`;
+      properties += `- workload: ${task.workload}\n`;
+    }
+    if (task.dueDate) {
+      properties += `- due: ${task.dueDate}\n`;
     }
     if (task.defaultExpanded !== undefined) {
-      properties += `  - defaultExpanded: ${task.defaultExpanded}\n`;
+      properties += `- defaultExpanded: ${task.defaultExpanded}\n`;
     }
     if (task.steps && task.steps.length > 0) {
-      properties += `  - steps:\n`;
+      properties += `- steps:\n`;
       for (const step of task.steps) {
         const checkbox = step.completed ? '[x]' : '[ ]';
-        properties += `      - ${checkbox} ${step.text}\n`;
+        properties += `  - ${checkbox} ${step.text}\n`;
       }
     }
 

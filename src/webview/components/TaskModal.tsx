@@ -6,6 +6,8 @@ interface TaskModalProps {
   onClose: () => void;
   onToggleStep: (stepIndex: number) => void;
   onUpdateTask?: (taskId: string, updates: Partial<KanbanTask>) => void;
+  isCreateMode?: boolean;
+  onCreateTask?: () => void;
 }
 
 type Priority = 'low' | 'medium' | 'high' | undefined;
@@ -14,15 +16,24 @@ type Workload = 'Easy' | 'Normal' | 'Hard' | 'Extreme' | undefined;
 const PRIORITY_CYCLE: Priority[] = [undefined, 'low', 'medium', 'high'];
 const WORKLOAD_CYCLE: Workload[] = [undefined, 'Easy', 'Normal', 'Hard', 'Extreme'];
 
-export function TaskModal({ task, onClose, onToggleStep, onUpdateTask }: TaskModalProps) {
+export function TaskModal({ task, onClose, onToggleStep, onUpdateTask, isCreateMode, onCreateTask }: TaskModalProps) {
   const [localSteps, setLocalSteps] = useState(task.steps || []);
   const [localDescription, setLocalDescription] = useState(task.description || '');
+  const [localTitle, setLocalTitle] = useState(task.title || '');
 
   // sync local state when task changes
   useEffect(() => {
     setLocalSteps(task.steps || []);
     setLocalDescription(task.description || '');
-  }, [task.steps, task.description]);
+    setLocalTitle(task.title || '');
+  }, [task.steps, task.description, task.title]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalTitle(e.target.value);
+    if (onUpdateTask) {
+      onUpdateTask(task.id, { title: e.target.value });
+    }
+  };
 
   // close modal on Escape key
   useEffect(() => {
@@ -197,9 +208,21 @@ export function TaskModal({ task, onClose, onToggleStep, onUpdateTask }: TaskMod
         {/* Header */}
         <div className="px-6 py-4 border-b border-vscode-input-border">
           <div className="flex items-start justify-between gap-4">
-            <h2 className="text-xl font-semibold text-vscode-foreground flex-1">
-              {task.title}
-            </h2>
+            {isCreateMode ? (
+              <input
+                type="text"
+                value={localTitle}
+                onChange={handleTitleChange}
+                placeholder="Task title..."
+                autoFocus
+                {...stopProp}
+                className="text-xl font-semibold text-vscode-foreground flex-1 bg-transparent border-b border-vscode-input-border focus:outline-none focus:border-vscode-primary pb-1"
+              />
+            ) : (
+              <h2 className="text-xl font-semibold text-vscode-foreground flex-1">
+                {task.title}
+              </h2>
+            )}
             <button
               onClick={onClose}
               {...stopProp}
@@ -339,13 +362,33 @@ export function TaskModal({ task, onClose, onToggleStep, onUpdateTask }: TaskMod
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-vscode-input-border flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            {...stopProp}
-            className="px-4 py-2 text-sm font-medium rounded bg-vscode-button-bg text-vscode-button-fg hover:bg-vscode-button-hoverBg transition-colors"
-          >
-            Close
-          </button>
+          {isCreateMode ? (
+            <>
+              <button
+                onClick={onClose}
+                {...stopProp}
+                className="px-4 py-2 text-sm font-medium rounded border border-vscode-input-border text-vscode-foreground hover:bg-vscode-list-hoverBg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onCreateTask}
+                disabled={!localTitle.trim()}
+                {...stopProp}
+                className="px-4 py-2 text-sm font-medium rounded bg-vscode-button-bg text-vscode-button-fg hover:bg-vscode-button-hoverBg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onClose}
+              {...stopProp}
+              className="px-4 py-2 text-sm font-medium rounded bg-vscode-button-bg text-vscode-button-fg hover:bg-vscode-button-hoverBg transition-colors"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>
