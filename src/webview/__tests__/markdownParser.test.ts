@@ -242,4 +242,185 @@ describe('MarkdownKanbanParser', () => {
       expect(task.steps).toHaveLength(2);
     });
   });
+
+  describe('parseMarkdown - Flexible indentation', () => {
+    it('parses properties with 2-space indentation', () => {
+      const markdown = `# Board
+
+## To Do
+
+### Task
+  - priority: high
+  - workload: Hard
+`;
+      const board = MarkdownKanbanParser.parseMarkdown(markdown);
+      expect(board.columns[0].tasks[0].priority).toBe('high');
+      expect(board.columns[0].tasks[0].workload).toBe('Hard');
+    });
+
+    it('parses properties with 4-space indentation (Prettier default)', () => {
+      const markdown = `# Board
+
+## To Do
+
+### Task
+    - priority: high
+    - workload: Hard
+`;
+      const board = MarkdownKanbanParser.parseMarkdown(markdown);
+      expect(board.columns[0].tasks[0].priority).toBe('high');
+      expect(board.columns[0].tasks[0].workload).toBe('Hard');
+    });
+
+    it('parses properties with tab indentation', () => {
+      const markdown = `# Board
+
+## To Do
+
+### Task
+\t- priority: high
+\t- workload: Hard
+`;
+      const board = MarkdownKanbanParser.parseMarkdown(markdown);
+      expect(board.columns[0].tasks[0].priority).toBe('high');
+      expect(board.columns[0].tasks[0].workload).toBe('Hard');
+    });
+
+    it('parses steps with 4-space indentation', () => {
+      const markdown = `# Board
+
+## To Do
+
+### Task
+  - steps:
+    - [ ] Step one
+    - [x] Step two
+`;
+      const board = MarkdownKanbanParser.parseMarkdown(markdown);
+      const steps = board.columns[0].tasks[0].steps;
+      expect(steps).toHaveLength(2);
+      expect(steps![0].text).toBe('Step one');
+      expect(steps![1].completed).toBe(true);
+    });
+
+    it('parses steps with 6-space indentation (original format)', () => {
+      const markdown = `# Board
+
+## To Do
+
+### Task
+  - steps:
+      - [ ] Step one
+      - [x] Step two
+`;
+      const board = MarkdownKanbanParser.parseMarkdown(markdown);
+      const steps = board.columns[0].tasks[0].steps;
+      expect(steps).toHaveLength(2);
+      expect(steps![0].text).toBe('Step one');
+      expect(steps![1].completed).toBe(true);
+    });
+
+    it('parses steps with 8-space indentation (Prettier with 4-space)', () => {
+      const markdown = `# Board
+
+## To Do
+
+### Task
+    - steps:
+        - [ ] Step one
+        - [x] Step two
+`;
+      const board = MarkdownKanbanParser.parseMarkdown(markdown);
+      const steps = board.columns[0].tasks[0].steps;
+      expect(steps).toHaveLength(2);
+      expect(steps![0].text).toBe('Step one');
+      expect(steps![1].completed).toBe(true);
+    });
+
+    it('handles mixed indentation in same file', () => {
+      const markdown = `# Board
+
+## To Do
+
+### Task One
+  - priority: high
+
+### Task Two
+    - priority: low
+    - steps:
+        - [ ] Step
+`;
+      const board = MarkdownKanbanParser.parseMarkdown(markdown);
+      expect(board.columns[0].tasks[0].priority).toBe('high');
+      expect(board.columns[0].tasks[1].priority).toBe('low');
+      expect(board.columns[0].tasks[1].steps).toHaveLength(1);
+    });
+
+    it('parses VSCode formatted markdown (no indentation on properties)', () => {
+      const markdown = `# Test Features Board
+
+## To Do
+
+### Design Login Page
+
+#design #frontend #ui
+
+- priority: high
+- workload: Hard
+- due: 2024-12-15
+- steps:
+  - [ ] Create wireframe
+  - [ ] Design mockups
+  - [x] Get approval
+
+### Write API Docs
+
+- tags: [backend, documentation]
+- priority: medium
+- workload: Normal
+
+## In Progress
+
+### Setup Database
+
+#backend #infrastructure
+
+- priority: high
+- workload: Extreme
+- steps:
+  - [x] Install PostgreSQL
+  - [x] Create schemas
+  - [ ] Add migrations
+`;
+      const board = MarkdownKanbanParser.parseMarkdown(markdown);
+
+      expect(board.title).toBe('Test Features Board');
+      expect(board.columns).toHaveLength(2);
+
+      // First task - Design Login Page
+      const task1 = board.columns[0].tasks[0];
+      expect(task1.title).toBe('Design Login Page');
+      expect(task1.priority).toBe('high');
+      expect(task1.workload).toBe('Hard');
+      expect(task1.dueDate).toBe('2024-12-15');
+      expect(task1.tags).toContain('design');
+      expect(task1.tags).toContain('frontend');
+      expect(task1.steps).toHaveLength(3);
+      expect(task1.steps![2].completed).toBe(true);
+
+      // Second task - Write API Docs
+      const task2 = board.columns[0].tasks[1];
+      expect(task2.title).toBe('Write API Docs');
+      expect(task2.priority).toBe('medium');
+      expect(task2.tags).toContain('backend');
+
+      // Third task - Setup Database
+      const task3 = board.columns[1].tasks[0];
+      expect(task3.title).toBe('Setup Database');
+      expect(task3.priority).toBe('high');
+      expect(task3.workload).toBe('Extreme');
+      expect(task3.steps).toHaveLength(3);
+      expect(task3.steps![0].completed).toBe(true);
+    });
+  });
 });

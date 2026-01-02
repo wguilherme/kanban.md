@@ -107,7 +107,7 @@
       "editor/title": [
         {
           "command": "markdown-kanban.openKanban",
-          "when": "resourceExtname == .md && markdownKanbanActive",
+          "when": "resourceFilename =~ /\\.kanban\\.md$/ && markdownKanbanActive",
           "group": "navigation"
         }
       ]

@@ -6,7 +6,7 @@
 
 **Transform your Markdown files into powerful, interactive Kanban boards**
 
-[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://marketplace.visualstudio.com/items?itemName=wguilherme.kanban-md)
+[![Version](https://img.shields.io/badge/version-0.1.3-blue.svg)](https://marketplace.visualstudio.com/items?itemName=wguilherme.kanban-md)
 [![VSCode](https://img.shields.io/badge/VSCode-1.74.0+-green.svg)](https://code.visualstudio.com/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
@@ -40,8 +40,18 @@ Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed t
 
 ### 📝 Rich Task Management
 
-- **Priority Levels**: Three levels - High (🔴), Medium (🟡), Low (🟢)
-- **Workload Tracking**: Four intensity levels - Easy (🟢), Normal (🟡), Hard (🔴), Extreme (🔴🔴)
+- **Priority Levels**: Three levels displayed as colored left border on cards (Trello-style)
+  - High: red border
+  - Medium: yellow border
+  - Low: green border
+- **Workload Tracking**: Four intensity levels with diamond icons
+  - Easy (◇), Normal (◈), Hard (◆), Extreme (◆◆)
+- **Editable Task Modal**: Click any task to open a modal where you can:
+  - Click badges to cycle through priority/workload values
+  - Add, remove, and edit subtasks inline
+  - Edit description with save-on-blur
+  - Set due dates with date picker
+  - Unsaved changes indicator (●) shown in header
 - **Step-by-Step Tasks**: Checkbox-based subtasks using `- [ ] step` format
 - **Tag System**: Multiple tagging formats supported:
   - Inline: `#tag1 #tag2`
@@ -65,6 +75,7 @@ Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed t
 
 - **Modern Architecture**:
   - React 19 with functional components and hooks
+  - Zustand for centralized state management
   - TypeScript 5.9 with strict mode
   - Vite 7 for lightning-fast builds
   - TailwindCSS 3 for utility-first styling
@@ -72,6 +83,7 @@ Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed t
   - Fingerprint-based content comparison (NormalizedDocument pattern)
   - Promise queue for serialized save operations
   - Optimistic UI updates with backend sync protection
+  - Deferred save pattern - changes saved when modal closes
 - **Performance Optimizations**:
   - Memoized components (`React.memo`) to prevent unnecessary re-renders
   - Single HTML build per panel lifecycle
@@ -93,7 +105,7 @@ Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed t
 ### From VSIX
 
 ```bash
-code --install-extension kanban-md-0.1.1.vsix
+code --install-extension kanban-md-0.1.3.vsix
 ```
 
 ### Requirements
@@ -326,11 +338,13 @@ markdown-kanban/
 │   ├── extension.ts              # Extension entry point
 │   ├── kanbanWebviewPanel.ts     # Webview lifecycle manager
 │   ├── webview/                  # React application
-│   │   ├── App.tsx               # Main React app with DnD
+│   │   ├── App.tsx               # Main React app
 │   │   ├── components/
-│   │   │   ├── atoms/            # Atomic design: Button, Badge, Input, etc.
-│   │   │   ├── DraggableTask.tsx
-│   │   │   └── DroppableColumn.tsx
+│   │   │   ├── KanbanBoard/      # Board + drag-drop components
+│   │   │   ├── TaskModal.tsx     # Task detail modal
+│   │   │   └── atoms/            # Atomic design: Button, Badge, etc.
+│   │   ├── stores/               # Zustand state management
+│   │   │   └── kanbanStore.ts    # Centralized board state
 │   │   ├── hooks/                # Custom React hooks
 │   │   └── types/                # TypeScript definitions
 ├── dist/                         # Build output
@@ -355,6 +369,7 @@ This project uses **Vite 7** with dual configurations:
 |------------|---------|---------|
 | TypeScript | 5.9.3 | Type-safe development |
 | React | 19.2.0 | UI framework |
+| Zustand | 5.0.5 | State management |
 | Vite | 7.2.4 | Build tool |
 | TailwindCSS | 3.4.18 | Styling |
 | @dnd-kit | 6.3.1 | Drag & drop |

@@ -22,6 +22,7 @@ interface KanbanState {
   isDragging: boolean;
   dragPreview: KanbanColumn[] | null;
   openTaskId: string | null;
+  newTaskColumnId: string | null;
 
   // internal
   _fingerprint: string;
@@ -32,6 +33,7 @@ interface KanbanState {
 
   // task operations
   updateTask: (taskId: string, updates: Partial<KanbanTask>) => void;
+  addTask: (columnId: string, taskData: Partial<KanbanTask>) => void;
   moveTask: (taskId: string, fromColumnId: string, toColumnId: string, newIndex: number) => void;
   reorderTask: (columnId: string, oldIndex: number, newIndex: number) => void;
 
@@ -43,6 +45,7 @@ interface KanbanState {
 
   // modal operations
   openModal: (taskId: string) => void;
+  openModalForNewTask: (columnId: string) => void;
   closeModal: () => void;
 }
 
@@ -53,6 +56,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   isDragging: false,
   dragPreview: null,
   openTaskId: null,
+  newTaskColumnId: null,
   _fingerprint: '',
 
   setBoard: (board) => {
@@ -106,6 +110,49 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         type: 'updateTask',
         taskId,
         updates,
+      });
+    } catch {
+      // ignore in test environment
+    }
+  },
+
+  addTask: (columnId, taskData) => {
+    const state = get();
+    if (!state.board) return;
+
+    const column = state.board.columns.find(c => c.id === columnId);
+    if (!column) return;
+
+    const newTask: KanbanTask = {
+      id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: taskData.title || 'New Task',
+      ...taskData,
+    };
+
+    const newColumns = state.board.columns.map(col => {
+      if (col.id === columnId) {
+        return {
+          ...col,
+          tasks: [...col.tasks, newTask],
+        };
+      }
+      return col;
+    });
+
+    const newBoard = { ...state.board, columns: newColumns };
+    const newFingerprint = getBoardFingerprint(newBoard);
+
+    set({
+      board: newBoard,
+      _fingerprint: newFingerprint,
+    });
+
+    // post message to extension
+    try {
+      getVSCodeAPI().postMessage({
+        type: 'addTask',
+        columnId,
+        taskData: newTask,
       });
     } catch {
       // ignore in test environment
@@ -235,7 +282,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   },
 
   openModal: (taskId) => {
-    set({ openTaskId: taskId });
+    set({ openTaskId: taskId, newTaskColumnId: null });
+    // notify extension that modal is open
+    try {
+      getVSCodeAPI().postMessage({ type: 'modalStateChange', isOpen: true });
+    } catch {
+      // ignore in test environment
+    }
+  },
+
+  openModalForNewTask: (columnId) => {
+    set({ openTaskId: null, newTaskColumnId: columnId });
     // notify extension that modal is open
     try {
       getVSCodeAPI().postMessage({ type: 'modalStateChange', isOpen: true });
@@ -245,7 +302,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   },
 
   closeModal: () => {
-    set({ openTaskId: null });
+    set({ openTaskId: null, newTaskColumnId: null });
     // notify extension that modal is closed - triggers deferred save
     try {
       getVSCodeAPI().postMessage({ type: 'modalStateChange', isOpen: false });
@@ -276,6 +333,7 @@ export const useModalTask = () =>
   });
 
 export const useIsDragging = () => useKanbanStore((state) => state.isDragging);
-export const useIsModalOpen = () => useKanbanStore((state) => state.openTaskId !== null);
+export const useIsModalOpen = () => useKanbanStore((state) => state.openTaskId !== null || state.newTaskColumnId !== null);
 export const useIsLoading = () => useKanbanStore((state) => state.isLoading);
 export const useBoard = () => useKanbanStore((state) => state.board);
+export const useNewTaskColumnId = () => useKanbanStore((state) => state.newTaskColumnId);

@@ -57,9 +57,9 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 
-		// Check if file is a markdown file
-		if (!targetUri.fsPath.endsWith('.md')) {
-			vscode.window.showErrorMessage('Please select a markdown file.');
+		// Check if file is a kanban markdown file
+		if (!targetUri.fsPath.endsWith('.kanban.md')) {
+			vscode.window.showErrorMessage('Please select a .kanban.md file.');
 			return;
 		}
 
@@ -169,7 +169,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Listen for document changes, auto-update kanban (real-time sync)
 	const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
-		if (event.document.languageId === 'markdown' && fileListenerEnabled) {
+		if (event.document.fileName.endsWith('.kanban.md') && fileListenerEnabled) {
 			// Delay update to avoid frequent refreshes
 			setTimeout(() => {
 				// Update kanban in panel
@@ -188,7 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Listen for active editor changes
 	const activeEditorChangeListener = vscode.window.onDidChangeActiveTextEditor((editor) => {
-		if (editor && editor.document.languageId === 'markdown' && fileListenerEnabled) {
+		if (editor && editor.document.fileName.endsWith('.kanban.md') && fileListenerEnabled) {
 			vscode.commands.executeCommand('setContext', 'markdownKanbanActive', true);
 			// If panel is open, auto-load current document
 			if (KanbanWebviewPanel.currentPanel) {
@@ -212,8 +212,8 @@ export function activate(context: vscode.ExtensionContext) {
 		activeEditorChangeListener,
 	);
 
-	// If there's an active markdown editor, auto-activate kanban
-	if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === 'markdown') {
+	// If there's an active kanban editor, auto-activate kanban
+	if (vscode.window.activeTextEditor?.document.fileName.endsWith('.kanban.md')) {
 		vscode.commands.executeCommand('setContext', 'markdownKanbanActive', true);
 	}
 }
