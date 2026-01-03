@@ -6,7 +6,7 @@
 
 **Transform your Markdown files into powerful, interactive Kanban boards**
 
-[![Version](https://img.shields.io/badge/version-0.1.3-blue.svg)](https://marketplace.visualstudio.com/items?itemName=wguilherme.kanban-md)
+[![Version](https://img.shields.io/badge/version-0.1.4-blue.svg)](https://marketplace.visualstudio.com/items?itemName=wguilherme.kanban-md)
 [![VSCode](https://img.shields.io/badge/VSCode-1.74.0+-green.svg)](https://code.visualstudio.com/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
@@ -21,8 +21,6 @@
 **Kanban.md** is a modern VSCode extension that brings the power of Kanban boards directly into your Markdown workflow. Manage tasks, track progress, and organize projects using plain Markdown files with a beautiful, interactive drag-and-drop interface.
 
 Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed to respect your VSCode theme, Kanban.md seamlessly integrates with your development environment.
-
-> **Note**: This project is inspired by [holooooo/markdown-kanban](https://github.com/holooooo/markdown-kanban). It has been completely refactored with modern technologies and architectural patterns to provide enhanced performance and maintainability.
 
 ![Kanban Board Demo](./imgs/image.png)
 
@@ -105,7 +103,7 @@ Built with modern technologies (React 19, TypeScript 5.9, Vite 7) and designed t
 ### From VSIX
 
 ```bash
-code --install-extension kanban-md-0.1.3.vsix
+code --install-extension kanban-md-0.1.4.vsix
 ```
 
 ### Requirements
@@ -369,7 +367,7 @@ This project uses **Vite 7** with dual configurations:
 |------------|---------|---------|
 | TypeScript | 5.9.3 | Type-safe development |
 | React | 19.2.0 | UI framework |
-| Zustand | 5.0.5 | State management |
+| Zustand | 5.0.8 | State management |
 | Vite | 7.2.4 | Build tool |
 | TailwindCSS | 3.4.18 | Styling |
 | @dnd-kit | 6.3.1 | Drag & drop |
@@ -467,7 +465,7 @@ Found a bug? Please [open an issue](https://github.com/wguilherme/kanban.md/issu
 
 - **Issues**: [GitHub Issues](https://github.com/wguilherme/kanban.md/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/wguilherme/kanban.md/discussions)
-- **Marketplace**: [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=wguilherme.markdown-kanban)
+- **Marketplace**: [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=wguilherme.kanban-md)
 
 ---
 
@@ -482,6 +480,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - Built with [VSCode Extension API](https://code.visualstudio.com/api)
 - Drag & drop powered by [@dnd-kit](https://dndkit.com/)
 - UI components follow [Atomic Design](https://atomicdesign.bradfrost.com/) principles
+- Inspired by [holooooo/markdown-kanban](https://github.com/holooooo/markdown-kanban), completely refactored with modern technologies
 - Special thanks to all [contributors](https://github.com/wguilherme/kanban.md/graphs/contributors)
 
 ---
