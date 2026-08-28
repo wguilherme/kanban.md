@@ -9,7 +9,9 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  pointerWithin,
   DragOverEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
 import type { KanbanTask, KanbanColumn } from '../../types/kanban';
@@ -208,12 +210,27 @@ export function KanbanBoard() {
     cancelDrag();
   }, [cancelDrag]);
 
+  // closestCorners alone can fail to register a column as the drop target
+  // when that column has zero tasks (no sortable rects inside it to compare
+  // corners against), which makes handleDragOver bail out early and the
+  // card snap back to its origin. Falling back to pointerWithin first fixes
+  // dropping onto empty columns while keeping closestCorners' behavior for
+  // everything else — this is the same strategy dnd-kit's own "Multiple
+  // Containers" example uses for this exact scenario.
+  const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+    return closestCorners(args);
+  }, []);
+
   if (!board) return null;
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetectionStrategy}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
